@@ -14,4 +14,10 @@ class ExampleUnitTest {
     fun addition_isCorrect() {
         assertEquals(4, 2 + 2)
     }
+
+    @Test
+    fun test_1(){
+        val pair: Pair<Int, Int> = 1 to 5;
+        println(pair.toString())
+    }
 }

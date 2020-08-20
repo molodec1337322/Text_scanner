@@ -4,7 +4,6 @@ package com.textscanner.app
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageButton
 import kotlinx.android.synthetic.main.activity_main.*
 import android.Manifest
 import android.app.Activity
@@ -18,13 +17,9 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.HandlerThread
-import android.util.Log
 import android.view.TextureView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
-import android.widget.Toast
+import android.widget.*
 import com.textscanner.app.custom.AutoFitTextureView
-import com.textscanner.app.extensions.autofitTexture
 
 class MainActivity : AppCompatActivity() {
 
@@ -48,8 +43,8 @@ class MainActivity : AppCompatActivity() {
     var cameraService: CameraService? = null
     var mCameraBack: Int = 0
     var cameraBackResolutionsList: MutableList<Pair<Int, Int>> = mutableListOf()
-    //var cameraBackResolutionArray: Array<String> = arrayOf()
-    var currentCameraBackResolution: Pair<Int, Int> = 0 to 0
+    var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
+    var currentCameraBackResolution: Int = 0
 
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
@@ -73,24 +68,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureDestroyed(surface: SurfaceTexture?): Boolean {
-            Log.d(MY_TAG, "surface destroyed")
             cameraService?.closeCamera()
             cameraService = null
             return true
         }
 
         override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
-            Log.d(MY_TAG, "surface ready")
-            cameraService = CameraService(
-                context,
-                activity,
-                mCameraManager,
-                surfaceTextureImage,
-                mBackgroundHandler,
-                mCameraBack.toString(),
-                cameraBackResolutionsList[0]
-            )
-            cameraService!!.openCamera()
+            initCameraPreview()
         }
     }
 
@@ -118,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         startBackgroundThread()
         surfaceTextureImage.surfaceTextureListener = surfaceTextureListener
         if(status == Status.MAKING_PHOTO){
-            initPreview()
+            initCameraPreview()
         }
     }
 
@@ -130,6 +114,13 @@ class MainActivity : AppCompatActivity() {
         spinnerSettingsList = spinner_settings
 
 
+        val adapter: ArrayAdapter<String> = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            displayCameraBackResolutionsList
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerSettingsList.adapter = adapter
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
         status = Status.valueOf(statusSaved)
@@ -146,14 +137,32 @@ class MainActivity : AppCompatActivity() {
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
             enableButtonByStatus(status)
-            initPreview()
+            initCameraPreview()
         })
 
         btnRemakePhoto.setOnClickListener(View.OnClickListener {
             status = Status.MAKING_PHOTO
             enableButtonByStatus(status)
-            initPreview()
+            initCameraPreview()
         })
+
+        spinnerSettingsList.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                currentCameraBackResolution = position
+                cameraService?.closeCamera()
+                cameraService = null
+                initCameraPreview()
+            }
+        }
     }
 
     fun enableButtonByStatus(status: Status){
@@ -174,11 +183,6 @@ class MainActivity : AppCompatActivity() {
                 btnRemakePhoto.visibility = ImageButton.INVISIBLE
             }
         }
-    }
-
-    fun pairListToArrayString(): Array<String>{
-        var arrayString: Array<String> = Array<String>(cameraBackResolutionsList.size)
-        return arrayString
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -227,33 +231,28 @@ class MainActivity : AppCompatActivity() {
     fun getCameraInfo(){
         val cameraList = mCameraManager.cameraIdList
         for(camera in cameraList){
-            //Log.d(MY_TAG, "camera_id: $camera")
             val cc = mCameraManager.getCameraCharacteristics(camera)
             when(cc.get(CameraCharacteristics.LENS_FACING)){
-                //CameraCharacteristics.LENS_FACING_FRONT -> Log.d(MY_TAG, "$camera facing front")
                 CameraCharacteristics.LENS_FACING_BACK -> {
-                    //Log.d(MY_TAG, "$camera facing back")
                     mCameraBack = camera.toInt()
                 }
-                //else -> Log.d(MY_TAG, "$camera facing external")
             }
 
             val configurationMap = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val sizesJPEG = configurationMap?.getOutputSizes(ImageFormat.JPEG)
             if(sizesJPEG != null){
                 for(size in sizesJPEG){
-                    //Log.d(MY_TAG, "$camera has ${size.width}x${size.height} resolution for JPEG")
                     if(cc.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK){
                         cameraBackResolutionsList.add(size.width to size.height)
+                        displayCameraBackResolutionsList.add("${size.width}X${size.height}")
                     }
                 }
             }
             else{
                 mCameraBack = -1
-                Log.d(MY_TAG, "$camera does not support JPEG")
             }
         }
-        currentCameraBackResolution = cameraBackResolutionsList[0]
+        currentCameraBackResolution = 0
     }
 
     fun startBackgroundThread(){
@@ -269,9 +268,9 @@ class MainActivity : AppCompatActivity() {
         mBackgroundHandler = null
     }
 
-    fun initPreview(){
+    fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            surfaceTextureImage.setAspectRatio(currentCameraBackResolution.second, currentCameraBackResolution.first)
+            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].second, cameraBackResolutionsList[currentCameraBackResolution].first)
             cameraService = CameraService(
                 context,
                 activity,
@@ -279,7 +278,7 @@ class MainActivity : AppCompatActivity() {
                 surfaceTextureImage,
                 mBackgroundHandler,
                 mCameraBack.toString(),
-                cameraBackResolutionsList[0]
+                cameraBackResolutionsList[currentCameraBackResolution]
             )
             cameraService!!.openCamera()
         }
