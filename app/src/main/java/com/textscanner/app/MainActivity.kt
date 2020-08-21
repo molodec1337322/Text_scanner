@@ -78,16 +78,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val spinnerListener = object : AdapterView.OnItemSelectedListener{
+        override fun onNothingSelected(parent: AdapterView<*>?) {
+
+        }
+
+        override fun onItemSelected(
+            parent: AdapterView<*>?,
+            view: View?,
+            position: Int,
+            id: Long
+        ) {
+            status = Status.MAKING_PHOTO
+            enableButtonByStatus(status)
+            currentCameraBackResolution = position
+            cameraService?.closeCamera()
+            cameraService = null
+            initCameraPreview()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        initViews(savedInstanceState)
-
         checkPermissions()
         mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         getCameraInfo()
-
+        initViews(savedInstanceState)
     }
 
     override fun onPause() {
@@ -113,13 +131,12 @@ class MainActivity : AppCompatActivity() {
         surfaceTextureImage = tv_image
         spinnerSettingsList = spinner_settings
 
-
         val adapter: ArrayAdapter<String> = ArrayAdapter(
             this,
-            android.R.layout.simple_spinner_item,
+            R.layout.spinner_item,
             displayCameraBackResolutionsList
         )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        adapter.setDropDownViewResource(R.layout.spinner_item)
         spinnerSettingsList.adapter = adapter
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
@@ -146,23 +163,7 @@ class MainActivity : AppCompatActivity() {
             initCameraPreview()
         })
 
-        spinnerSettingsList.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-
-            }
-
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                currentCameraBackResolution = position
-                cameraService?.closeCamera()
-                cameraService = null
-                initCameraPreview()
-            }
-        }
+        spinnerSettingsList.onItemSelectedListener = spinnerListener
     }
 
     fun enableButtonByStatus(status: Status){
