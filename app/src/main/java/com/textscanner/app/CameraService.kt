@@ -45,7 +45,6 @@ class CameraService(
 
         override fun onError(camera: CameraDevice, error: Int) {
             closeCamera()
-            openCamera()
         }
     }
     private val captureCallback = object : CameraCaptureSession.CaptureCallback() {
@@ -65,7 +64,6 @@ class CameraService(
     val cameraCaptureSession = object: CameraCaptureSession.StateCallback(){
         override fun onConfigureFailed(session: CameraCaptureSession) {
             closeCamera()
-            openCamera()
         }
 
         override fun onConfigured(session: CameraCaptureSession) {
@@ -104,7 +102,7 @@ class CameraService(
         imageReader = ImageReader.newInstance(
             size.first,
             size.second,
-            ImageFormat.RAW_SENSOR,
+            ImageFormat.RGB_565,
             1
         )
         cameraDevice!!.createCaptureSession(

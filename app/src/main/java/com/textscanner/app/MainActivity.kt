@@ -68,8 +68,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureDestroyed(surface: SurfaceTexture?): Boolean {
-            cameraService?.closeCamera()
-            cameraService = null
+            stopCameraPreview()
             return true
         }
 
@@ -89,12 +88,13 @@ class MainActivity : AppCompatActivity() {
             position: Int,
             id: Long
         ) {
-            status = Status.MAKING_PHOTO
-            enableButtonByStatus(status)
-            currentCameraBackResolution = position
-            cameraService?.closeCamera()
-            cameraService = null
-            initCameraPreview()
+            if (currentCameraBackResolution != position) {
+                stopCameraPreview()
+                status = Status.MAKING_PHOTO
+                enableButtonByStatus(status)
+                currentCameraBackResolution = position
+                initCameraPreview()
+            }
         }
     }
 
@@ -110,8 +110,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (cameraService != null && cameraService!!.isOpen()) cameraService?.closeCamera()
-        cameraService = null
+        if (cameraService != null && cameraService!!.isOpen()) {
+            stopCameraPreview()
+        }
         stopBackgroundThread()
     }
 
@@ -147,8 +148,7 @@ class MainActivity : AppCompatActivity() {
             status = Status.CHECKING_PHOTO
             enableButtonByStatus(status)
             //bitmapImage = cameraService?.makePhoto()
-            cameraService?.closeCamera()
-            cameraService = null
+            stopCameraPreview()
         })
 
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
@@ -283,5 +283,10 @@ class MainActivity : AppCompatActivity() {
             )
             cameraService!!.openCamera()
         }
+    }
+
+    fun stopCameraPreview(){
+        cameraService?.closeCamera()
+        cameraService = null
     }
 }
