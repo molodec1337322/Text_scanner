@@ -6,7 +6,7 @@
     </style>
 
     <style name="SpinnerTheme" parent="android:Widget.Spinner">
-        <item name="android:background">@drawable/ic_settings_black_24dp</item>
+        <item name="android:background">@drawable/ic_settings_black_40dp</item>
     </style>
 
 </resources>

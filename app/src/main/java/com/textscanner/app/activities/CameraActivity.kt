@@ -1,13 +1,14 @@
-package com.textscanner.app
+package com.textscanner.app.activities
 
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_camera.*
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -20,14 +21,20 @@ import android.os.HandlerThread
 import android.util.Size
 import android.view.TextureView
 import android.widget.*
+import com.textscanner.app.CameraService
+import com.textscanner.app.R
+import com.textscanner.app.Status
 import com.textscanner.app.custom.AutoFitTextureView
 
-class MainActivity : AppCompatActivity() {
+class CameraActivity : AppCompatActivity() {
 
     companion object {
         const val STATUS: String = "STATUS"
 
         const val MY_TAG: String = "My_log "
+
+        const val RESOLUTION_LIST: String = "RESOLUTION_LIST"
+        const val RESOLUTION_CURRENT: String = "RESOLUTION_CURRENT"
     }
 
     private val PERMISSION_CODE: Int = 1000
@@ -35,8 +42,14 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnMakePhoto: ImageButton
     lateinit var btnProcessPhoto: ImageButton
     lateinit var btnRemakePhoto: ImageButton
+    lateinit var btnSettings: ImageButton
+    lateinit var btnGallery: ImageButton
     lateinit var surfaceTextureImage: AutoFitTextureView
-    lateinit var spinnerResolutionSettingsList: Spinner
+
+    lateinit var tvProcess: TextView
+    lateinit var tvRemake: TextView
+    lateinit var tvSettings: TextView
+    lateinit var tvGallery: TextView
 
     var status: Status = Status.MAKING_PHOTO
 
@@ -44,7 +57,6 @@ class MainActivity : AppCompatActivity() {
     var cameraService: CameraService? = null
     var mCameraBack: Int = 0
     var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
-    var cameraBackOutputResolutionList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
     var currentCameraBackResolution: Int = 0
 
@@ -79,34 +91,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val spinnerListener = object : AdapterView.OnItemSelectedListener{
-        override fun onNothingSelected(parent: AdapterView<*>?) {
 
-        }
-
-        override fun onItemSelected(
-            parent: AdapterView<*>?,
-            view: View?,
-            position: Int,
-            id: Long
-        ) {
-            if (currentCameraBackResolution != position) {
-                stopCameraPreview()
-                status = Status.MAKING_PHOTO
-                enableButtonByStatus(status)
-                currentCameraBackResolution = position
-                initCameraPreview()
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_camera)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         checkPermissions()
         mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         getCameraInfo()
+
+
+
         initViews(savedInstanceState)
     }
 
@@ -131,18 +127,18 @@ class MainActivity : AppCompatActivity() {
         btnMakePhoto = btn_make_photo
         btnProcessPhoto = btn_process_photo
         btnRemakePhoto = btn_remake_photo
+        btnSettings = btn_settings
+        btnGallery = btn_gallery
         surfaceTextureImage = tv_image
-        spinnerResolutionSettingsList = spinner_resolution_settings
 
-        val adapter: ArrayAdapter<String> = ArrayAdapter(
-            this,
-            R.layout.spinner_item,
-            displayCameraBackResolutionsList
-        )
-        adapter.setDropDownViewResource(R.layout.spinner_item)
-        spinnerResolutionSettingsList.adapter = adapter
+        tvProcess = tv_process
+        tvRemake = tv_remake
+        tvGallery = tv_gallery
+        tvSettings = tv_settings
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
+        currentCameraBackResolution = intent.getIntExtra(RESOLUTION_CURRENT, 0)
+
         status = Status.valueOf(statusSaved)
         enableButtonByStatus(status)
 
@@ -165,7 +161,16 @@ class MainActivity : AppCompatActivity() {
             initCameraPreview()
         })
 
-        spinnerResolutionSettingsList.onItemSelectedListener = spinnerListener
+        btnSettings.setOnClickListener(View.OnClickListener{
+            val intent: Intent = Intent(this, SettingsActivity::class.java)
+            intent.putExtra("RESOLUTION_LIST", displayCameraBackResolutionsList.toTypedArray())
+            intent.putExtra("RESOLUTION_CURRENT", currentCameraBackResolution)
+            startActivity(intent)
+        })
+
+        btnGallery.setOnClickListener(View.OnClickListener{
+
+        })
     }
 
     fun enableButtonByStatus(status: Status){
@@ -174,16 +179,37 @@ class MainActivity : AppCompatActivity() {
                 btnMakePhoto.visibility = ImageButton.VISIBLE
                 btnProcessPhoto.visibility = ImageButton.INVISIBLE
                 btnRemakePhoto.visibility = ImageButton.INVISIBLE
+                btnSettings.visibility = ImageButton.VISIBLE
+                btnGallery.visibility = ImageButton.VISIBLE
+
+                tvProcess.visibility = TextView.INVISIBLE
+                tvRemake.visibility = TextView.INVISIBLE
+                tvGallery.visibility = TextView.VISIBLE
+                tvSettings.visibility = TextView.VISIBLE
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
                 btnProcessPhoto.visibility = ImageButton.VISIBLE
                 btnRemakePhoto.visibility = ImageButton.VISIBLE
+                btnSettings.visibility = ImageButton.INVISIBLE
+                btnGallery.visibility = ImageButton.INVISIBLE
+
+                tvProcess.visibility = TextView.VISIBLE
+                tvRemake.visibility = TextView.VISIBLE
+                tvGallery.visibility = TextView.INVISIBLE
+                tvSettings.visibility = TextView.INVISIBLE
             }
             Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
                 btnMakePhoto.visibility = ImageButton.VISIBLE
                 btnProcessPhoto.visibility = ImageButton.INVISIBLE
                 btnRemakePhoto.visibility = ImageButton.INVISIBLE
+                btnSettings.visibility = ImageButton.VISIBLE
+                btnGallery.visibility = ImageButton.VISIBLE
+
+                tvProcess.visibility = TextView.INVISIBLE
+                tvRemake.visibility = TextView.INVISIBLE
+                tvGallery.visibility = TextView.VISIBLE
+                tvSettings.visibility = TextView.VISIBLE
             }
         }
     }
