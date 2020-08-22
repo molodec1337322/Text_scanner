@@ -17,6 +17,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Size
 import android.view.TextureView
 import android.widget.*
 import com.textscanner.app.custom.AutoFitTextureView
@@ -35,14 +36,15 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnProcessPhoto: ImageButton
     lateinit var btnRemakePhoto: ImageButton
     lateinit var surfaceTextureImage: AutoFitTextureView
-    lateinit var spinnerSettingsList: Spinner
+    lateinit var spinnerResolutionSettingsList: Spinner
 
     var status: Status = Status.MAKING_PHOTO
 
     lateinit var mCameraManager: CameraManager
     var cameraService: CameraService? = null
     var mCameraBack: Int = 0
-    var cameraBackResolutionsList: MutableList<Pair<Int, Int>> = mutableListOf()
+    var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
+    var cameraBackOutputResolutionList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
     var currentCameraBackResolution: Int = 0
 
@@ -130,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         btnProcessPhoto = btn_process_photo
         btnRemakePhoto = btn_remake_photo
         surfaceTextureImage = tv_image
-        spinnerSettingsList = spinner_settings
+        spinnerResolutionSettingsList = spinner_resolution_settings
 
         val adapter: ArrayAdapter<String> = ArrayAdapter(
             this,
@@ -138,7 +140,7 @@ class MainActivity : AppCompatActivity() {
             displayCameraBackResolutionsList
         )
         adapter.setDropDownViewResource(R.layout.spinner_item)
-        spinnerSettingsList.adapter = adapter
+        spinnerResolutionSettingsList.adapter = adapter
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
         status = Status.valueOf(statusSaved)
@@ -163,7 +165,7 @@ class MainActivity : AppCompatActivity() {
             initCameraPreview()
         })
 
-        spinnerSettingsList.onItemSelectedListener = spinnerListener
+        spinnerResolutionSettingsList.onItemSelectedListener = spinnerListener
     }
 
     fun enableButtonByStatus(status: Status){
@@ -244,7 +246,7 @@ class MainActivity : AppCompatActivity() {
             if(sizesJPEG != null){
                 for(size in sizesJPEG){
                     if(cc.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK){
-                        cameraBackResolutionsList.add(size.width to size.height)
+                        cameraBackResolutionsList.add(size)
                         displayCameraBackResolutionsList.add("${size.width}X${size.height}")
                     }
                 }
@@ -271,7 +273,7 @@ class MainActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].second, cameraBackResolutionsList[currentCameraBackResolution].first)
+            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
             cameraService = CameraService(
                 context,
                 activity,
@@ -279,7 +281,8 @@ class MainActivity : AppCompatActivity() {
                 surfaceTextureImage,
                 mBackgroundHandler,
                 mCameraBack.toString(),
-                cameraBackResolutionsList[currentCameraBackResolution]
+                cameraBackResolutionsList[currentCameraBackResolution],
+                Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
             )
             cameraService!!.openCamera()
         }

@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat.checkSelfPermission
 import android.os.Handler
 import android.util.Log
+import android.util.Size
 import android.view.TextureView
 
 
@@ -25,7 +26,8 @@ class CameraService(
     val textureView: TextureView,
     val backgroundHandler: Handler?,
     val cameraID:String,
-    val size: Pair<Int, Int>
+    val size: Size,
+    val previewSize: Size
 ) {
     private val PERMISSION_CODE:Int = 1000
     private var cameraDevice: CameraDevice? = null
@@ -96,13 +98,13 @@ class CameraService(
 
     private fun startCamera(){
         val texture = textureView.surfaceTexture
-        texture.setDefaultBufferSize(size.first, size.second)
+        texture.setDefaultBufferSize(previewSize.width, previewSize.height)
         surface = Surface(texture)
 
         imageReader = ImageReader.newInstance(
-            size.first,
-            size.second,
-            ImageFormat.RGB_565,
+            previewSize.width,
+            previewSize.height,
+            ImageFormat.JPEG,
             1
         )
         cameraDevice!!.createCaptureSession(
@@ -133,8 +135,12 @@ class CameraService(
     }
 
     fun closeCamera(){
+        captureSession?.close()
+        captureSession = null
         cameraDevice?.close()
         cameraDevice = null
+        imageReader?.close()
+        imageReader = null
     }
 
 
