@@ -299,7 +299,11 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
+            val previewRes = fitPreview(
+                cameraBackResolutionsList[currentCameraBackResolution],
+                Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
+            )
+            surfaceTextureImage.setAspectRatio(previewRes.height, previewRes.width)
             cameraService = CameraService(
                 context,
                 activity,
@@ -308,10 +312,20 @@ class CameraActivity : AppCompatActivity() {
                 mBackgroundHandler,
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
-                Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
+                previewRes
             )
             cameraService!!.openCamera()
         }
+    }
+
+    fun fitPreview(cameraSize: Size, previewSize: Size): Size{
+        var height: Int = cameraSize.height
+        var width: Int = cameraSize.width
+        if(cameraSize.width > previewSize.width * 2 || cameraSize.height > previewSize.height * 2){
+            width = cameraSize.width / 2
+            height = cameraSize.height / 2
+        }
+        return Size(width, height)
     }
 
     fun stopCameraPreview(){

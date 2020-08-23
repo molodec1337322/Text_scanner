@@ -14,12 +14,15 @@ class AutoFitTextureView @JvmOverloads constructor(
     private var ratioWidth = 0
     private var ratioHeight = 0
 
+    var aspectRatio: Double = 0.0
+
     fun setAspectRatio(width: Int, height: Int) {
         if (width < 0 || height < 0) {
             throw IllegalArgumentException("Size cannot be negative.")
         }
         ratioWidth = width
         ratioHeight = height
+        aspectRatio = ratioWidth.toDouble() / ratioHeight.toDouble()
         requestLayout()
     }
 

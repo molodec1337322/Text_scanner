@@ -20,6 +20,7 @@ class SettingsActivity : AppCompatActivity() {
 
     var displayCameraBackResolutionsList: MutableList<String>? = mutableListOf()
     var currentCameraBackResolution: Int = 0
+    var isLaunching: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +49,6 @@ class SettingsActivity : AppCompatActivity() {
             displayCameraBackResolutionsList!!
         )
         adapter.setDropDownViewResource(R.layout.spinner_item)
-        spinnerResolution.setSelection(currentCameraBackResolution)
         spinnerResolution.adapter = adapter
         spinnerResolution.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
             override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -61,8 +61,12 @@ class SettingsActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                if (currentCameraBackResolution != position) {
+                if (currentCameraBackResolution != position && !isLaunching) {
                     currentCameraBackResolution = position
+                }
+                else if(isLaunching){
+                    isLaunching = false
+                    spinnerResolution.setSelection(currentCameraBackResolution)
                 }
             }
         }
