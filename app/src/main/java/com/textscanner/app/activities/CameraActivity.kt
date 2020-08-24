@@ -12,12 +12,16 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.media.Image
+import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.MediaStore
 import android.util.Size
 import android.view.TextureView
 import android.widget.*
@@ -38,6 +42,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private val PERMISSION_CODE: Int = 1000
+    private val OPERATION_CHOOSE_PHOTO = 100
 
     lateinit var btnMakePhoto: ImageButton
     lateinit var btnProcessPhoto: ImageButton
@@ -67,6 +72,7 @@ class CameraActivity : AppCompatActivity() {
     val context: Context = this
 
     var bitmapImage: Bitmap? = null
+    var image: Image? = null
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -91,8 +97,6 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
@@ -101,16 +105,11 @@ class CameraActivity : AppCompatActivity() {
         mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         getCameraInfo()
 
-
-
         initViews(savedInstanceState)
     }
 
     override fun onPause() {
         super.onPause()
-        if (cameraService != null && cameraService!!.isOpen()) {
-            stopCameraPreview()
-        }
         stopBackgroundThread()
     }
 
@@ -118,9 +117,6 @@ class CameraActivity : AppCompatActivity() {
         super.onResume()
         startBackgroundThread()
         surfaceTextureImage.surfaceTextureListener = surfaceTextureListener
-        if(status == Status.MAKING_PHOTO){
-            initCameraPreview()
-        }
     }
 
     fun initViews(savedInstanceState: Bundle?){
@@ -146,30 +142,30 @@ class CameraActivity : AppCompatActivity() {
             status = Status.CHECKING_PHOTO
             enableButtonByStatus(status)
             //bitmapImage = cameraService?.makePhoto()
-            stopCameraPreview()
         })
 
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
             enableButtonByStatus(status)
-            initCameraPreview()
         })
 
         btnRemakePhoto.setOnClickListener(View.OnClickListener {
             status = Status.MAKING_PHOTO
             enableButtonByStatus(status)
-            initCameraPreview()
         })
 
         btnSettings.setOnClickListener(View.OnClickListener{
-            val intent: Intent = Intent(this, SettingsActivity::class.java)
+            val intent = Intent(this, SettingsActivity::class.java)
             intent.putExtra("RESOLUTION_LIST", displayCameraBackResolutionsList.toTypedArray())
             intent.putExtra("RESOLUTION_CURRENT", currentCameraBackResolution)
             startActivity(intent)
         })
 
         btnGallery.setOnClickListener(View.OnClickListener{
-
+            stopCameraPreview()
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            startActivityForResult(intent, OPERATION_CHOOSE_PHOTO)
         })
     }
 
@@ -186,6 +182,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.INVISIBLE
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
+                initCameraPreview()
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
@@ -198,6 +195,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.VISIBLE
                 tvGallery.visibility = TextView.INVISIBLE
                 tvSettings.visibility = TextView.INVISIBLE
+                stopCameraPreview()
             }
             Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
                 btnMakePhoto.visibility = ImageButton.VISIBLE
@@ -210,6 +208,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.INVISIBLE
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
+                initCameraPreview()
             }
         }
     }
@@ -254,6 +253,15 @@ class CameraActivity : AppCompatActivity() {
                     Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK && requestCode == OPERATION_CHOOSE_PHOTO){
+            bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
+            status = Status.CHECKING_PHOTO
+            enableButtonByStatus(status)
         }
     }
 
