@@ -27,6 +27,7 @@ import android.view.TextureView
 import android.view.ViewGroup
 import android.widget.*
 import com.textscanner.app.CameraService
+import com.textscanner.app.ImageHandler
 import com.textscanner.app.R
 import com.textscanner.app.Status
 import com.textscanner.app.custom.AutoFitImageView
@@ -75,7 +76,7 @@ class CameraActivity : AppCompatActivity() {
     val context: Context = this
 
     var bitmapImage: Bitmap? = null
-    var image: Image? = null
+    var cameraImage: Image? = null
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -145,7 +146,6 @@ class CameraActivity : AppCompatActivity() {
         btnMakePhoto.setOnClickListener(View.OnClickListener {
             status = Status.CHECKING_PHOTO
             enableButtonByStatus(status)
-            //bitmapImage = cameraService?.makePhoto()
         })
 
         btnProcessPhoto.setOnClickListener(View.OnClickListener {

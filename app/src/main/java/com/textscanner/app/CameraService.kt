@@ -4,17 +4,13 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.ImageFormat
-import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.media.ImageReader
 import android.view.Surface
-import android.widget.Toast
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat.checkSelfPermission
 import android.os.Handler
-import android.util.Log
 import android.util.Size
 import android.view.TextureView
 
@@ -38,7 +34,7 @@ class CameraService(
     private val cameraCallback = object: CameraDevice.StateCallback(){
         override fun onOpened(camera: CameraDevice) {
             cameraDevice = camera
-            startCamera()
+            startCameraPreview()
         }
 
         override fun onDisconnected(camera: CameraDevice) {
@@ -73,14 +69,6 @@ class CameraService(
             makePreview()
         }
     }
-    /*
-    val onImageAvailableListener = object: ImageReader.OnImageAvailableListener{
-        override fun onImageAvailable(reader: ImageReader) {
-            val image = reader.acquireNextImage()
-            backgroundHandler?.post()
-        }
-    }
-     */
 
     private fun makePreview() {
         builder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
@@ -96,14 +84,14 @@ class CameraService(
         )
     }
 
-    private fun startCamera(){
+    private fun startCameraPreview(){
         val texture = textureView.surfaceTexture
         texture.setDefaultBufferSize(previewSize.width, previewSize.height)
         surface = Surface(texture)
 
         imageReader = ImageReader.newInstance(
-            previewSize.width,
-            previewSize.height,
+            size.width,
+            size.height,
             ImageFormat.JPEG,
             1
         )
@@ -145,6 +133,7 @@ class CameraService(
 
 
     fun makePhoto(handler: ImageHandler){
+        val captureBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
         imageReader?.setOnImageAvailableListener(object: ImageReader.OnImageAvailableListener{
             override fun onImageAvailable(reader: ImageReader) {
                 val image = reader.acquireNextImage()
