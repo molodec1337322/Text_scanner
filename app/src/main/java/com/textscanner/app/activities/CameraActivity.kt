@@ -299,7 +299,7 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            val previewRes = fitPreview(
+            val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
                 Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
             )
@@ -318,14 +318,19 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    fun fitPreview(cameraSize: Size, previewSize: Size): Size{
-        var height: Int = cameraSize.height
-        var width: Int = cameraSize.width
-        if(cameraSize.width > previewSize.width * 2 || cameraSize.height > previewSize.height * 2){
-            width = cameraSize.width / 2
-            height = cameraSize.height / 2
+    fun getSmallestPossiblePreviewSize(cameraSize: Size, previewSize: Size): Size{
+        if(cameraSize.height <= previewSize.height && cameraSize.width <= previewSize.width){
+            return cameraSize
         }
-        return Size(width, height)
+        else{
+            val cameraAspectRatio: Float = cameraSize.width.toFloat() / cameraSize.height.toFloat()
+            for(i in currentCameraBackResolution..cameraBackResolutionsList.size-1){
+                if(cameraBackResolutionsList[i].width <= previewSize.width*2 && cameraBackResolutionsList[i].height <= previewSize.height*2 &&
+                        cameraBackResolutionsList[i].width.toFloat() / cameraBackResolutionsList[i].height.toFloat() == cameraAspectRatio)
+                    return cameraBackResolutionsList[i]
+            }
+        }
+        return Size(cameraSize.width / 2, cameraSize.height / 2)
     }
 
     fun stopCameraPreview(){
