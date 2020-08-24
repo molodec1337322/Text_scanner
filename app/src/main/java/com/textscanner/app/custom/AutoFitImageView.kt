@@ -4,12 +4,13 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.TextureView
 import android.view.View
+import android.widget.ImageView
 
-class AutoFitTextureView @JvmOverloads constructor(
+class AutoFitImageView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0
-) : TextureView(context, attrs, defStyle) {
+) : androidx.appcompat.widget.AppCompatImageView(context, attrs, defStyle) {
 
     private var ratioWidth = 0
     private var ratioHeight = 0

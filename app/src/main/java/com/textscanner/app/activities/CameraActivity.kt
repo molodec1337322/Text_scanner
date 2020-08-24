@@ -24,10 +24,12 @@ import android.os.HandlerThread
 import android.provider.MediaStore
 import android.util.Size
 import android.view.TextureView
+import android.view.ViewGroup
 import android.widget.*
 import com.textscanner.app.CameraService
 import com.textscanner.app.R
 import com.textscanner.app.Status
+import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
 
 class CameraActivity : AppCompatActivity() {
@@ -50,6 +52,7 @@ class CameraActivity : AppCompatActivity() {
     lateinit var btnSettings: ImageButton
     lateinit var btnGallery: ImageButton
     lateinit var surfaceTextureImage: AutoFitTextureView
+    lateinit var surfaceImageView: AutoFitImageView
 
     lateinit var tvProcess: TextView
     lateinit var tvRemake: TextView
@@ -126,6 +129,7 @@ class CameraActivity : AppCompatActivity() {
         btnSettings = btn_settings
         btnGallery = btn_gallery
         surfaceTextureImage = tv_image
+        surfaceImageView = iv_image
 
         tvProcess = tv_process
         tvRemake = tv_remake
@@ -262,6 +266,7 @@ class CameraActivity : AppCompatActivity() {
             bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
             status = Status.CHECKING_PHOTO
             enableButtonByStatus(status)
+            surfaceImageView.setImageBitmap(bitmapImage)
         }
     }
 
@@ -307,6 +312,7 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
+            changeVisibilityOfImageViews(status)
             val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
                 Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
@@ -344,5 +350,28 @@ class CameraActivity : AppCompatActivity() {
     fun stopCameraPreview(){
         cameraService?.closeCamera()
         cameraService = null
+        changeVisibilityOfImageViews(status)
+    }
+
+    fun changeVisibilityOfImageViews(status: Status){
+        val visibleViewParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0
+        )
+        visibleViewParams.weight = 1.0f
+        val invisibleViewParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0
+        )
+        invisibleViewParams.weight = 0.0f
+
+        if (status == Status.MAKING_PHOTO){
+            surfaceTextureImage.layoutParams = visibleViewParams
+            surfaceImageView.layoutParams = invisibleViewParams
+        }
+        else{
+            surfaceTextureImage.layoutParams = invisibleViewParams
+            surfaceImageView.layoutParams = visibleViewParams
+        }
     }
 }
