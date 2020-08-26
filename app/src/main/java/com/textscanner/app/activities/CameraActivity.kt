@@ -8,6 +8,7 @@ import kotlinx.android.synthetic.main.activity_camera.*
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -17,21 +18,20 @@ import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.media.Image
-import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
 import android.provider.MediaStore
 import android.util.Size
 import android.view.TextureView
-import android.view.ViewGroup
 import android.widget.*
 import com.textscanner.app.CameraService
-import com.textscanner.app.ImageHandler
+import com.textscanner.app.OnImageCapturedHandler
 import com.textscanner.app.R
 import com.textscanner.app.Status
 import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
+import java.io.File
+import java.io.FileInputStream
 
 class CameraActivity : AppCompatActivity() {
 
@@ -60,6 +60,8 @@ class CameraActivity : AppCompatActivity() {
     lateinit var tvSettings: TextView
     lateinit var tvGallery: TextView
 
+    var file: File? = null
+
     var status: Status = Status.MAKING_PHOTO
 
     lateinit var mCameraManager: CameraManager
@@ -76,7 +78,6 @@ class CameraActivity : AppCompatActivity() {
     val context: Context = this
 
     var bitmapImage: Bitmap? = null
-    var cameraImage: Image? = null
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -101,6 +102,15 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
+    private val onImageCapturedHandler = object: OnImageCapturedHandler{
+        override fun onCaptured(bitmap: Bitmap) {
+            stopCameraPreview()
+            bitmapImage = bitmap
+            setPictureOnDisplay(bitmapImage)
+        }
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
@@ -108,6 +118,8 @@ class CameraActivity : AppCompatActivity() {
         checkPermissions()
         mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         getCameraInfo()
+
+        file = File(ContextWrapper(this).getDir("images", Context.MODE_PRIVATE), "taken_picture.jpg")
 
         initViews(savedInstanceState)
     }
@@ -141,24 +153,26 @@ class CameraActivity : AppCompatActivity() {
         currentCameraBackResolution = intent.getIntExtra(RESOLUTION_CURRENT, 0)
 
         status = Status.valueOf(statusSaved)
-        enableButtonByStatus(status)
+        enableButtonsAndCameraByStatus(status)
 
         btnMakePhoto.setOnClickListener(View.OnClickListener {
+            cameraService?.makePhoto()
             status = Status.CHECKING_PHOTO
-            enableButtonByStatus(status)
+            enableButtonsAndCameraByStatus(status)
         })
 
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
-            enableButtonByStatus(status)
+            enableButtonsAndCameraByStatus(status)
         })
 
         btnRemakePhoto.setOnClickListener(View.OnClickListener {
             status = Status.MAKING_PHOTO
-            enableButtonByStatus(status)
+            enableButtonsAndCameraByStatus(status)
         })
 
         btnSettings.setOnClickListener(View.OnClickListener{
+            stopCameraPreview()
             val intent = Intent(this, SettingsActivity::class.java)
             intent.putExtra("RESOLUTION_LIST", displayCameraBackResolutionsList.toTypedArray())
             intent.putExtra("RESOLUTION_CURRENT", currentCameraBackResolution)
@@ -173,7 +187,7 @@ class CameraActivity : AppCompatActivity() {
         })
     }
 
-    fun enableButtonByStatus(status: Status){
+    fun enableButtonsAndCameraByStatus(status: Status){
         when(status){
             Status.MAKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.VISIBLE
@@ -187,6 +201,7 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
                 initCameraPreview()
+                changeVisibilityOfImageViews(status)
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
@@ -199,7 +214,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.VISIBLE
                 tvGallery.visibility = TextView.INVISIBLE
                 tvSettings.visibility = TextView.INVISIBLE
-                stopCameraPreview()
+                changeVisibilityOfImageViews(status)
             }
             Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
                 btnMakePhoto.visibility = ImageButton.VISIBLE
@@ -213,8 +228,14 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
                 initCameraPreview()
+                changeVisibilityOfImageViews(status)
             }
         }
+    }
+
+    fun setPictureOnDisplay(bitmapImage: Bitmap?){
+        surfaceImageView.setAspectRatio(bitmapImage!!.width, bitmapImage.height)
+        surfaceImageView.setImageBitmap(bitmapImage)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -265,8 +286,12 @@ class CameraActivity : AppCompatActivity() {
         if (resultCode == Activity.RESULT_OK && requestCode == OPERATION_CHOOSE_PHOTO){
             bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
             status = Status.CHECKING_PHOTO
-            enableButtonByStatus(status)
-            surfaceImageView.setImageBitmap(bitmapImage)
+            enableButtonsAndCameraByStatus(status)
+            setPictureOnDisplay(bitmapImage)
+        }
+        else{
+            status = Status.MAKING_PHOTO
+            enableButtonsAndCameraByStatus(status)
         }
     }
 
@@ -312,7 +337,6 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            changeVisibilityOfImageViews(status)
             val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
                 Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
@@ -326,9 +350,12 @@ class CameraActivity : AppCompatActivity() {
                 mBackgroundHandler,
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
-                previewRes
+                previewRes,
+                file!!,
+                onImageCapturedHandler
             )
             cameraService!!.openCamera()
+
         }
     }
 
@@ -350,17 +377,16 @@ class CameraActivity : AppCompatActivity() {
     fun stopCameraPreview(){
         cameraService?.closeCamera()
         cameraService = null
-        changeVisibilityOfImageViews(status)
     }
 
     fun changeVisibilityOfImageViews(status: Status){
         val visibleViewParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
             0
         )
         visibleViewParams.weight = 1.0f
         val invisibleViewParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
             0
         )
         invisibleViewParams.weight = 0.0f

@@ -7,12 +7,13 @@ import android.content.pm.PackageManager
 import android.graphics.ImageFormat
 import android.hardware.camera2.*
 import android.media.ImageReader
-import android.view.Surface
-import androidx.core.app.ActivityCompat.requestPermissions
-import androidx.core.content.ContextCompat.checkSelfPermission
 import android.os.Handler
 import android.util.Size
+import android.view.Surface
 import android.view.TextureView
+import androidx.core.app.ActivityCompat.requestPermissions
+import androidx.core.content.ContextCompat.checkSelfPermission
+import java.io.File
 
 
 class CameraService(
@@ -23,14 +24,25 @@ class CameraService(
     val backgroundHandler: Handler?,
     val cameraID:String,
     val size: Size,
-    val previewSize: Size
+    val previewSize: Size,
+    val file: File,
+    val onImageCapturedHandler: OnImageCapturedHandler
 ) {
+    enum class Status(){
+        PREVIEW,
+        WAITING_LOCK,
+        WAITING_PRECAPTURE,
+        WAITING_NON_PRECAPTURE,
+        TAKEN
+    }
+
     private val PERMISSION_CODE:Int = 1000
     private var cameraDevice: CameraDevice? = null
     private var imageReader: ImageReader? = null
     private var builder: CaptureRequest.Builder? = null
     private var surface: Surface? = null
     private var captureSession: CameraCaptureSession? = null
+    private var status: Status = Status.PREVIEW
     private val cameraCallback = object: CameraDevice.StateCallback(){
         override fun onOpened(camera: CameraDevice) {
             cameraDevice = camera
@@ -45,7 +57,8 @@ class CameraService(
             closeCamera()
         }
     }
-    private val captureCallback = object : CameraCaptureSession.CaptureCallback() {
+
+    val captureCallback = object : CameraCaptureSession.CaptureCallback() {
         override fun onCaptureProgressed(session: CameraCaptureSession,
                                          request: CaptureRequest,
                                          partialResult: CaptureResult
@@ -59,6 +72,7 @@ class CameraService(
 
         }
     }
+
     val cameraCaptureSession = object: CameraCaptureSession.StateCallback(){
         override fun onConfigureFailed(session: CameraCaptureSession) {
             closeCamera()
@@ -67,6 +81,13 @@ class CameraService(
         override fun onConfigured(session: CameraCaptureSession) {
             captureSession = session
             makePreview()
+        }
+    }
+
+    val imageReaderListener = object: ImageReader.OnImageAvailableListener{
+        override fun onImageAvailable(reader: ImageReader) {
+            val image = reader.acquireNextImage()
+            backgroundHandler?.post(ImageHandler(image, file, onImageCapturedHandler, activity))
         }
     }
 
@@ -85,6 +106,7 @@ class CameraService(
     }
 
     private fun startCameraPreview(){
+        status = Status.PREVIEW
         val texture = textureView.surfaceTexture
         texture.setDefaultBufferSize(previewSize.width, previewSize.height)
         surface = Surface(texture)
@@ -95,6 +117,7 @@ class CameraService(
             ImageFormat.JPEG,
             1
         )
+        imageReader!!.setOnImageAvailableListener(imageReaderListener, backgroundHandler)
         cameraDevice!!.createCaptureSession(
             mutableListOf(surface, imageReader!!.surface),
             cameraCaptureSession,
@@ -115,6 +138,7 @@ class CameraService(
                     cameraCallback,
                     backgroundHandler
                 )
+                status = Status.PREVIEW
             }
             else{
                 requestPermissions(activity, arrayOf(Manifest.permission.CAMERA), PERMISSION_CODE)
@@ -131,14 +155,9 @@ class CameraService(
         imageReader = null
     }
 
-
-    fun makePhoto(handler: ImageHandler){
-        val captureBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-        imageReader?.setOnImageAvailableListener(object: ImageReader.OnImageAvailableListener{
-            override fun onImageAvailable(reader: ImageReader) {
-                val image = reader.acquireNextImage()
-                backgroundHandler?.post(handler.handleImage(image))
-            }
-        }, backgroundHandler)
+    fun makePhoto() {
+        val captureBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+        captureBuilder.addTarget(imageReader!!.surface)
+        captureSession!!.capture(captureBuilder.build(), captureCallback, backgroundHandler)
     }
 }
