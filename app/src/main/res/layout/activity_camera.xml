@@ -29,8 +29,6 @@
             android:layout_weight="0"
             android:layout_gravity="center_horizontal"/>
 
-
-
     </LinearLayout>
 
     <LinearLayout

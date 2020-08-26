@@ -73,6 +73,7 @@ class CameraActivity : AppCompatActivity() {
     var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
     var currentCameraBackResolution: Int = 0
+    var previewSize: Size? = null
 
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
@@ -101,6 +102,7 @@ class CameraActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
+            previewSize = Size(width, height)
             initCameraPreview()
         }
     }
@@ -345,11 +347,13 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
+            /*
             val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
-                Size(surfaceTextureImage.measuredWidth, surfaceTextureImage.measuredHeight)
+                previewSize!!
             )
-            surfaceTextureImage.setAspectRatio(previewRes.height, previewRes.width)
+             */
+            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
             cameraService = CameraService(
                 context,
                 activity,
@@ -358,7 +362,7 @@ class CameraActivity : AppCompatActivity() {
                 mBackgroundHandler,
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
-                previewRes,
+                cameraBackResolutionsList[currentCameraBackResolution],
                 file!!,
                 onImageCapturedHandler
             )
@@ -372,10 +376,10 @@ class CameraActivity : AppCompatActivity() {
             return cameraSize
         }
         else{
-            val cameraAspectRatio: Float = cameraSize.width.toFloat() / cameraSize.height.toFloat()
+            val cameraAspectRatio = "%.2f".format(cameraSize.width.toFloat() / cameraSize.height.toFloat())
             for(i in currentCameraBackResolution..cameraBackResolutionsList.size-1){
-                if(cameraBackResolutionsList[i].width <= previewSize.width*2 && cameraBackResolutionsList[i].height <= previewSize.height*2 &&
-                        cameraBackResolutionsList[i].width.toFloat() / cameraBackResolutionsList[i].height.toFloat() == cameraAspectRatio)
+                if(cameraBackResolutionsList[i].width <= previewSize.width*3 && cameraBackResolutionsList[i].height <= previewSize.height*3 &&
+                    "%.2f".format(cameraBackResolutionsList[i].width.toFloat() / cameraBackResolutionsList[i].height.toFloat()) == cameraAspectRatio)
                     return cameraBackResolutionsList[i]
             }
         }
