@@ -1,10 +1,6 @@
 package com.textscanner.app.activities
 
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.view.View
-import kotlinx.android.synthetic.main.activity_camera.*
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -13,25 +9,32 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.provider.MediaStore
 import android.util.Size
 import android.view.TextureView
-import android.widget.*
+import android.view.View
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.textscanner.app.CameraService
 import com.textscanner.app.OnImageCapturedHandler
 import com.textscanner.app.R
 import com.textscanner.app.Status
 import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
+import com.textscanner.app.extensions.rotate
+import kotlinx.android.synthetic.main.activity_camera.*
 import java.io.File
-import java.io.FileInputStream
 
 class CameraActivity : AppCompatActivity() {
 
@@ -104,11 +107,10 @@ class CameraActivity : AppCompatActivity() {
 
     private val onImageCapturedHandler = object: OnImageCapturedHandler{
         override fun onCaptured(bitmap: Bitmap) {
-            stopCameraPreview()
-            bitmapImage = bitmap
+            bitmapImage = bitmap.rotate(90F)
             setPictureOnDisplay(bitmapImage)
+            changeVisibilityOfImageViews(status)
         }
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -157,6 +159,7 @@ class CameraActivity : AppCompatActivity() {
 
         btnMakePhoto.setOnClickListener(View.OnClickListener {
             cameraService?.makePhoto()
+            stopCameraPreview()
             status = Status.CHECKING_PHOTO
             enableButtonsAndCameraByStatus(status)
         })
@@ -200,6 +203,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.INVISIBLE
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
+
                 initCameraPreview()
                 changeVisibilityOfImageViews(status)
             }
@@ -214,7 +218,9 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.VISIBLE
                 tvGallery.visibility = TextView.INVISIBLE
                 tvSettings.visibility = TextView.INVISIBLE
-                changeVisibilityOfImageViews(status)
+
+
+                //waiting for get bitmap from camera
             }
             Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
                 btnMakePhoto.visibility = ImageButton.VISIBLE
@@ -227,6 +233,7 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.INVISIBLE
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
+
                 initCameraPreview()
                 changeVisibilityOfImageViews(status)
             }
@@ -284,10 +291,11 @@ class CameraActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK && requestCode == OPERATION_CHOOSE_PHOTO){
-            bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
+            bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data).rotate(90F)
             status = Status.CHECKING_PHOTO
-            enableButtonsAndCameraByStatus(status)
             setPictureOnDisplay(bitmapImage)
+            enableButtonsAndCameraByStatus(status)
+            changeVisibilityOfImageViews(status)
         }
         else{
             status = Status.MAKING_PHOTO
