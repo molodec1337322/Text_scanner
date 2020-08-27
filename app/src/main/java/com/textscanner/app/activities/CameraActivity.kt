@@ -89,7 +89,6 @@ class CameraActivity : AppCompatActivity() {
             width: Int,
             height: Int
         ) {
-            //previewSize = Size(width, height)
             if(width != 0 && height != 0){
                 previewSize = Size(width, height)
                 initCameraPreview()
@@ -106,8 +105,8 @@ class CameraActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
-            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
-
+            previewSize = Size(width, height)
+            initCameraPreview()
         }
     }
 
@@ -211,6 +210,10 @@ class CameraActivity : AppCompatActivity() {
                 tvSettings.visibility = TextView.VISIBLE
 
                 changeVisibilityOfImageViews(status)
+                surfaceTextureImage.setAspectRatio(
+                    cameraBackResolutionsList[currentCameraBackResolution].height,
+                    cameraBackResolutionsList[currentCameraBackResolution].width
+                )
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
