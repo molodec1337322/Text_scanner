@@ -108,7 +108,7 @@ class CameraService(
     private fun startCameraPreview(){
         status = Status.PREVIEW
         val texture = textureView.surfaceTexture
-        texture.setDefaultBufferSize(textureView.measuredWidth, textureView.measuredHeight)
+        texture.setDefaultBufferSize(previewSize.width, previewSize.height)
         surface = Surface(texture)
 
         imageReader = ImageReader.newInstance(

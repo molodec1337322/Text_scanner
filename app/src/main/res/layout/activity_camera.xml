@@ -17,14 +17,14 @@
 
         <com.textscanner.app.custom.AutoFitTextureView
             android:id="@+id/tv_image"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_gravity="center_horizontal"/>
 
         <com.textscanner.app.custom.AutoFitImageView
             android:id="@+id/iv_image"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="0"
             android:layout_gravity="center_horizontal"/>

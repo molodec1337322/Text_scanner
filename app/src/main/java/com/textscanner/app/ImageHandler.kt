@@ -3,6 +3,7 @@ package com.textscanner.app
 import android.app.Activity
 import android.graphics.BitmapFactory
 import android.media.Image
+import android.renderscript.ScriptIntrinsicYuvToRGB
 import java.io.File
 
 

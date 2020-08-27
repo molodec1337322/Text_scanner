@@ -73,7 +73,6 @@ class CameraActivity : AppCompatActivity() {
     var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
     var currentCameraBackResolution: Int = 0
-    var previewSize: Size? = null
 
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
@@ -82,6 +81,7 @@ class CameraActivity : AppCompatActivity() {
     val context: Context = this
 
     var bitmapImage: Bitmap? = null
+    var previewSize: Size? = null
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -89,7 +89,11 @@ class CameraActivity : AppCompatActivity() {
             width: Int,
             height: Int
         ) {
-
+            //previewSize = Size(width, height)
+            if(width != 0 && height != 0){
+                previewSize = Size(width, height)
+                initCameraPreview()
+            }
         }
 
         override fun onSurfaceTextureUpdated(surface: SurfaceTexture?) {
@@ -102,8 +106,8 @@ class CameraActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
-            previewSize = Size(width, height)
-            initCameraPreview()
+            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
+
         }
     }
 
@@ -206,7 +210,6 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
 
-                initCameraPreview()
                 changeVisibilityOfImageViews(status)
             }
             Status.CHECKING_PHOTO ->{
@@ -236,7 +239,6 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
 
-                initCameraPreview()
                 changeVisibilityOfImageViews(status)
             }
         }
@@ -347,13 +349,11 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
-            /*
             val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
                 previewSize!!
             )
-             */
-            surfaceTextureImage.setAspectRatio(cameraBackResolutionsList[currentCameraBackResolution].height, cameraBackResolutionsList[currentCameraBackResolution].width)
+
             cameraService = CameraService(
                 context,
                 activity,
@@ -362,29 +362,41 @@ class CameraActivity : AppCompatActivity() {
                 mBackgroundHandler,
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
-                cameraBackResolutionsList[currentCameraBackResolution],
+                previewRes,
                 file!!,
                 onImageCapturedHandler
             )
             cameraService!!.openCamera()
-
         }
     }
 
     fun getSmallestPossiblePreviewSize(cameraSize: Size, previewSize: Size): Size{
-        if(cameraSize.height <= previewSize.height && cameraSize.width <= previewSize.width){
+        if(cameraSize.height <= previewSize.height*1.5 && cameraSize.width <= previewSize.width*1.5){
             return cameraSize
         }
         else{
-            val cameraAspectRatio = "%.2f".format(cameraSize.width.toFloat() / cameraSize.height.toFloat())
+            val cameraAspectRatio: Float = cameraSize.width.toFloat() / cameraSize.height.toFloat()
             for(i in currentCameraBackResolution..cameraBackResolutionsList.size-1){
-                if(cameraBackResolutionsList[i].width <= previewSize.width*3 && cameraBackResolutionsList[i].height <= previewSize.height*3 &&
-                    "%.2f".format(cameraBackResolutionsList[i].width.toFloat() / cameraBackResolutionsList[i].height.toFloat()) == cameraAspectRatio)
+                if(cameraBackResolutionsList[i].width <= previewSize.width*2 && cameraBackResolutionsList[i].height <= previewSize.height*2 &&
+                    cameraBackResolutionsList[i].width.toFloat() / cameraBackResolutionsList[i].height.toFloat() == cameraAspectRatio)
                     return cameraBackResolutionsList[i]
             }
         }
-        return Size(cameraSize.width / 2, cameraSize.height / 2)
+
+        var width = 0
+        var height = 0
+        var ratio = 0.0f
+        if(cameraSize.width >= previewSize.height){
+            ratio = cameraSize.width.toFloat() / previewSize.height.toFloat()
+        }
+        else{
+            ratio = cameraSize.height.toFloat() / previewSize.width.toFloat()
+        }
+        width = (cameraSize.width / ratio).toInt()
+        height = (cameraSize.height / ratio).toInt()
+        return Size(width, height)
     }
+
 
     fun stopCameraPreview(){
         cameraService?.closeCamera()
