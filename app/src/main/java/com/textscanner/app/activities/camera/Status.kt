@@ -1,4 +1,4 @@
-package com.textscanner.app
+package com.textscanner.app.activities.camera
 
 enum class Status {
     MAKING_PHOTO,

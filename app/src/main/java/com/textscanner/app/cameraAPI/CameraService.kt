@@ -1,4 +1,4 @@
-package com.textscanner.app
+package com.textscanner.app.cameraAPI
 
 import android.Manifest
 import android.app.Activity
@@ -13,7 +13,6 @@ import android.view.Surface
 import android.view.TextureView
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat.checkSelfPermission
-import java.io.File
 
 
 class CameraService(
@@ -41,7 +40,8 @@ class CameraService(
     private var builder: CaptureRequest.Builder? = null
     private var surface: Surface? = null
     private var captureSession: CameraCaptureSession? = null
-    private var status: Status = Status.PREVIEW
+    private var status: Status =
+        Status.PREVIEW
     private val cameraCallback = object: CameraDevice.StateCallback(){
         override fun onOpened(camera: CameraDevice) {
             cameraDevice = camera
@@ -86,7 +86,13 @@ class CameraService(
     val imageReaderListener = object: ImageReader.OnImageAvailableListener{
         override fun onImageAvailable(reader: ImageReader) {
             val image = reader.acquireNextImage()
-            backgroundHandler?.post(ImageHandler(image, onImageCapturedHandler, activity))
+            backgroundHandler?.post(
+                ImageHandler(
+                    image,
+                    onImageCapturedHandler,
+                    activity
+                )
+            )
         }
     }
 
@@ -137,7 +143,8 @@ class CameraService(
                     cameraCallback,
                     backgroundHandler
                 )
-                status = Status.PREVIEW
+                status =
+                    Status.PREVIEW
             }
             else{
                 requestPermissions(activity, arrayOf(Manifest.permission.CAMERA), PERMISSION_CODE)

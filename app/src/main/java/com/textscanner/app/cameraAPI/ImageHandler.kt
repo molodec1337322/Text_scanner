@@ -1,10 +1,8 @@
-package com.textscanner.app
+package com.textscanner.app.cameraAPI
 
 import android.app.Activity
 import android.graphics.BitmapFactory
 import android.media.Image
-import android.renderscript.ScriptIntrinsicYuvToRGB
-import java.io.File
 
 
 class ImageHandler(

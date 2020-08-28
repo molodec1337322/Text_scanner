@@ -1,4 +1,4 @@
-package com.textscanner.app
+package com.textscanner.app.cameraAPI
 
 import android.graphics.Bitmap
 

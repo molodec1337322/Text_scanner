@@ -1,16 +1,14 @@
-package com.textscanner.app.activities
+package com.textscanner.app.activities.camera
 
 
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageFormat
-import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
@@ -27,25 +25,28 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.textscanner.app.CameraService
-import com.textscanner.app.OnImageCapturedHandler
+import com.textscanner.app.CameraSettings
+import com.textscanner.app.cameraAPI.CameraService
+import com.textscanner.app.cameraAPI.OnImageCapturedHandler
 import com.textscanner.app.R
-import com.textscanner.app.Status
+import com.textscanner.app.TinyDB.TinyDB
+import com.textscanner.app.activities.settings.SettingsActivity
 import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
 import com.textscanner.app.extensions.rotate
 import kotlinx.android.synthetic.main.activity_camera.*
-import java.io.File
+import java.lang.IndexOutOfBoundsException
+import kotlin.concurrent.thread
 
 class CameraActivity : AppCompatActivity() {
 
     companion object {
         const val STATUS: String = "STATUS"
 
-        const val MY_TAG: String = "My_log "
-
-        const val RESOLUTION_LIST: String = "RESOLUTION_LIST"
+        const val RESOLUTION_LIST_DISPLAY: String = "RESOLUTION_LIST_DISPLAY"
         const val RESOLUTION_CURRENT: String = "RESOLUTION_CURRENT"
+        const val RESOLUTION_LIST: String = "RESOLUTION_LIST"
+        const val CAMERA_SETTINGS: String = "CAMERA_SETTINGS"
     }
 
     private val PERMISSION_CODE: Int = 1000
@@ -64,21 +65,20 @@ class CameraActivity : AppCompatActivity() {
     lateinit var tvSettings: TextView
     lateinit var tvGallery: TextView
 
-    var status: Status = Status.MAKING_PHOTO
+    var status: Status =
+        Status.MAKING_PHOTO
 
     lateinit var mCameraManager: CameraManager
     var cameraService: CameraService? = null
     var mCameraBack: Int = 0
     var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
+    var cameraInfoSettings: CameraSettings? = null
     var currentCameraBackResolution: Int = 0
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
-    val activity: Activity = this
-    val context: Context = this
     var bitmapImage: Bitmap? = null
     var previewSize: Size? = null
-    var isPreviewRestored = false
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -86,7 +86,7 @@ class CameraActivity : AppCompatActivity() {
             width: Int,
             height: Int
         ) {
-            
+
         }
 
         override fun onSurfaceTextureUpdated(surface: SurfaceTexture?) {
@@ -104,7 +104,8 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private val onImageCapturedHandler = object: OnImageCapturedHandler{
+    private val onImageCapturedHandler = object:
+        OnImageCapturedHandler {
         override fun onCaptured(bitmap: Bitmap) {
             bitmapImage = bitmap.rotate(90F)
             setPictureOnDisplay(bitmapImage)
@@ -149,7 +150,6 @@ class CameraActivity : AppCompatActivity() {
         tvSettings = tv_settings
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
-        currentCameraBackResolution = intent.getIntExtra(RESOLUTION_CURRENT, 0)
 
         status = Status.valueOf(statusSaved)
         enableButtonsAndCameraByStatus(status)
@@ -174,8 +174,6 @@ class CameraActivity : AppCompatActivity() {
         btnSettings.setOnClickListener(View.OnClickListener{
             stopCameraPreview()
             val intent = Intent(this, SettingsActivity::class.java)
-            intent.putExtra("RESOLUTION_LIST", displayCameraBackResolutionsList.toTypedArray())
-            intent.putExtra("RESOLUTION_CURRENT", currentCameraBackResolution)
             startActivity(intent)
         })
 
@@ -202,6 +200,10 @@ class CameraActivity : AppCompatActivity() {
                 tvSettings.visibility = TextView.VISIBLE
 
                 changeVisibilityOfImageViews(status)
+                surfaceTextureImage.setAspectRatio(
+                    cameraBackResolutionsList[currentCameraBackResolution].height,
+                    cameraBackResolutionsList[currentCameraBackResolution].width
+                )
                 initCameraPreview()
             }
             Status.CHECKING_PHOTO ->{
@@ -215,7 +217,6 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.VISIBLE
                 tvGallery.visibility = TextView.INVISIBLE
                 tvSettings.visibility = TextView.INVISIBLE
-
 
                 //waiting for get bitmap from camera
             }
@@ -300,6 +301,36 @@ class CameraActivity : AppCompatActivity() {
     }
 
     fun getCameraInfo(){
+        val tinyDB = TinyDB(this)
+        cameraInfoSettings = tinyDB.getObject(CAMERA_SETTINGS, CameraSettings::class.java)
+
+        if (cameraInfoSettings == null){
+            getInfoFromHardware()
+            putInfoInSharedPreference(tinyDB)
+        }
+        else{
+            getInfoFromSharedPreference()
+        }
+    }
+
+    fun putInfoInSharedPreference(tinyDB: TinyDB){
+        tinyDB.putObject(
+            CAMERA_SETTINGS,
+            CameraSettings(
+                currentCameraBackResolution,
+                cameraBackResolutionsList,
+                displayCameraBackResolutionsList
+            )
+        )
+    }
+
+    fun getInfoFromSharedPreference(){
+        cameraBackResolutionsList = cameraInfoSettings!!.backCameraResolutionsList
+        displayCameraBackResolutionsList = cameraInfoSettings!!.displayCameraResolutionList
+        currentCameraBackResolution = cameraInfoSettings!!.currentResolutionIndex
+    }
+
+    fun getInfoFromHardware(){
         val cameraList = mCameraManager.cameraIdList
         for(camera in cameraList){
             val cc = mCameraManager.getCameraCharacteristics(camera)
@@ -319,9 +350,6 @@ class CameraActivity : AppCompatActivity() {
                     }
                 }
             }
-            else{
-                mCameraBack = -1
-            }
         }
         deleteUnsupportedResolutions()
         currentCameraBackResolution = 0
@@ -330,20 +358,17 @@ class CameraActivity : AppCompatActivity() {
     fun deleteUnsupportedResolutions(){
         val displayMetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displayMetrics)
-        val height = displayMetrics.heightPixels
-        val width = displayMetrics.widthPixels
 
         var deletedResolutions = 0
         for(i in 0 until cameraBackResolutionsList.size){
             val aspectRatio = cameraBackResolutionsList[i - deletedResolutions].width.toFloat() / cameraBackResolutionsList[i - deletedResolutions].height
             var overlaps = 0
-            if(cameraBackResolutionsList[i - deletedResolutions].width <= height && cameraBackResolutionsList[i - deletedResolutions].height <= width){
-                overlaps++
+            if(cameraBackResolutionsList[i - deletedResolutions].width <= displayMetrics.heightPixels && cameraBackResolutionsList[i - deletedResolutions].height <= displayMetrics.widthPixels){
                 break
             }
             for(j in i - deletedResolutions until cameraBackResolutionsList.size){
                 if(cameraBackResolutionsList[j].width.toFloat() / cameraBackResolutionsList[j].height == aspectRatio &&
-                        cameraBackResolutionsList[j].width <= height && cameraBackResolutionsList[j].height <= width){
+                        cameraBackResolutionsList[j].width <= displayMetrics.heightPixels && cameraBackResolutionsList[j].height <= displayMetrics.widthPixels){
                     overlaps++
                     break
                 }
@@ -371,14 +396,17 @@ class CameraActivity : AppCompatActivity() {
 
     fun initCameraPreview(){
         if(cameraService == null && surfaceTextureImage.isAvailable){
+            val displayMetrics = DisplayMetrics()
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
+
             val previewRes = getSmallestPossiblePreviewSize(
                 cameraBackResolutionsList[currentCameraBackResolution],
-                previewSize!!
+                Size(displayMetrics.widthPixels, displayMetrics.heightPixels)
             )
 
             cameraService = CameraService(
-                context,
-                activity,
+                this,
+                this,
                 mCameraManager,
                 surfaceTextureImage,
                 mBackgroundHandler,
@@ -392,7 +420,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     fun getSmallestPossiblePreviewSize(cameraSize: Size, previewSize: Size): Size{
-        if(cameraSize.height <= previewSize.height*1.5 && cameraSize.width <= previewSize.width*1.5){
+        if(cameraSize.height <= previewSize.height*2 && cameraSize.width <= previewSize.width*2){
             return cameraSize
         }
         else{
@@ -403,23 +431,8 @@ class CameraActivity : AppCompatActivity() {
                     return cameraBackResolutionsList[i]
             }
         }
-
-        var width = 0
-        var height = 0
-        var ratio = 0.0f
-        if(cameraSize.width >= previewSize.height){
-            ratio = cameraSize.width.toFloat() / previewSize.height.toFloat()
-        }
-        else{
-            ratio = cameraSize.height.toFloat() / previewSize.width.toFloat()
-        }
-        width = (cameraSize.width / ratio).toInt()
-        height = (cameraSize.height / ratio).toInt()
-        return Size(width, height)
+        throw IndexOutOfBoundsException()
     }
-
-
-
 
     fun stopCameraPreview(){
         cameraService?.closeCamera()
