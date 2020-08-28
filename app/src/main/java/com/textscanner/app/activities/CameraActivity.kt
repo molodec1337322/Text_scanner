@@ -18,6 +18,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.provider.MediaStore
+import android.util.DisplayMetrics
 import android.util.Size
 import android.view.TextureView
 import android.view.View
@@ -63,8 +64,6 @@ class CameraActivity : AppCompatActivity() {
     lateinit var tvSettings: TextView
     lateinit var tvGallery: TextView
 
-    var file: File? = null
-
     var status: Status = Status.MAKING_PHOTO
 
     lateinit var mCameraManager: CameraManager
@@ -73,15 +72,13 @@ class CameraActivity : AppCompatActivity() {
     var cameraBackResolutionsList: MutableList<Size> = mutableListOf()
     var displayCameraBackResolutionsList: MutableList<String> = mutableListOf()
     var currentCameraBackResolution: Int = 0
-
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
-
     val activity: Activity = this
     val context: Context = this
-
     var bitmapImage: Bitmap? = null
     var previewSize: Size? = null
+    var isPreviewRestored = false
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -89,10 +86,7 @@ class CameraActivity : AppCompatActivity() {
             width: Int,
             height: Int
         ) {
-            if(width != 0 && height != 0){
-                previewSize = Size(width, height)
-                initCameraPreview()
-            }
+            
         }
 
         override fun onSurfaceTextureUpdated(surface: SurfaceTexture?) {
@@ -125,8 +119,6 @@ class CameraActivity : AppCompatActivity() {
         checkPermissions()
         mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         getCameraInfo()
-
-        file = File(ContextWrapper(this).getDir("images", Context.MODE_PRIVATE), "taken_picture.jpg")
 
         initViews(savedInstanceState)
     }
@@ -210,10 +202,7 @@ class CameraActivity : AppCompatActivity() {
                 tvSettings.visibility = TextView.VISIBLE
 
                 changeVisibilityOfImageViews(status)
-                surfaceTextureImage.setAspectRatio(
-                    cameraBackResolutionsList[currentCameraBackResolution].height,
-                    cameraBackResolutionsList[currentCameraBackResolution].width
-                )
+                initCameraPreview()
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
@@ -334,7 +323,37 @@ class CameraActivity : AppCompatActivity() {
                 mCameraBack = -1
             }
         }
+        deleteUnsupportedResolutions()
         currentCameraBackResolution = 0
+    }
+
+    fun deleteUnsupportedResolutions(){
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val height = displayMetrics.heightPixels
+        val width = displayMetrics.widthPixels
+
+        var deletedResolutions = 0
+        for(i in 0 until cameraBackResolutionsList.size){
+            val aspectRatio = cameraBackResolutionsList[i - deletedResolutions].width.toFloat() / cameraBackResolutionsList[i - deletedResolutions].height
+            var overlaps = 0
+            if(cameraBackResolutionsList[i - deletedResolutions].width <= height && cameraBackResolutionsList[i - deletedResolutions].height <= width){
+                overlaps++
+                break
+            }
+            for(j in i - deletedResolutions until cameraBackResolutionsList.size){
+                if(cameraBackResolutionsList[j].width.toFloat() / cameraBackResolutionsList[j].height == aspectRatio &&
+                        cameraBackResolutionsList[j].width <= height && cameraBackResolutionsList[j].height <= width){
+                    overlaps++
+                    break
+                }
+            }
+            if(overlaps == 0){
+                cameraBackResolutionsList.removeAt(i - deletedResolutions)
+                displayCameraBackResolutionsList.removeAt(i - deletedResolutions)
+                deletedResolutions++
+            }
+        }
     }
 
     fun startBackgroundThread(){
@@ -366,7 +385,6 @@ class CameraActivity : AppCompatActivity() {
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
                 previewRes,
-                file!!,
                 onImageCapturedHandler
             )
             cameraService!!.openCamera()
@@ -399,6 +417,8 @@ class CameraActivity : AppCompatActivity() {
         height = (cameraSize.height / ratio).toInt()
         return Size(width, height)
     }
+
+
 
 
     fun stopCameraPreview(){

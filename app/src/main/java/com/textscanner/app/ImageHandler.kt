@@ -9,7 +9,6 @@ import java.io.File
 
 class ImageHandler(
     private val image: Image,
-    private val file: File,
     val onImageCapturedHandler: OnImageCapturedHandler,
     val activity: Activity
 ) : Runnable {

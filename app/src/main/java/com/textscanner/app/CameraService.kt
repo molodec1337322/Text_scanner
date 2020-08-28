@@ -25,7 +25,6 @@ class CameraService(
     val cameraID:String,
     val size: Size,
     val previewSize: Size,
-    val file: File,
     val onImageCapturedHandler: OnImageCapturedHandler
 ) {
     enum class Status(){
@@ -87,7 +86,7 @@ class CameraService(
     val imageReaderListener = object: ImageReader.OnImageAvailableListener{
         override fun onImageAvailable(reader: ImageReader) {
             val image = reader.acquireNextImage()
-            backgroundHandler?.post(ImageHandler(image, file, onImageCapturedHandler, activity))
+            backgroundHandler?.post(ImageHandler(image, onImageCapturedHandler, activity))
         }
     }
 
