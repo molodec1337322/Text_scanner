@@ -8,15 +8,9 @@
 
     <TextView
         android:id="@+id/tv_resoulution"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:textSize="@dimen/font_normal_16"
-        android:layout_marginBottom="@dimen/spacing_tiny_4"/>
-
-    <View
-        android:layout_marginBottom="@dimen/spacing_small_8"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/color_gray_light"/>
+        android:padding="6dp"/>
 
 </LinearLayout>

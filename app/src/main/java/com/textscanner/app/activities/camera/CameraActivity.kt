@@ -128,12 +128,14 @@ class CameraActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopBackgroundThread()
+        stopCameraPreview()
     }
 
     override fun onResume() {
         super.onResume()
         startBackgroundThread()
         surfaceTextureImage.surfaceTextureListener = surfaceTextureListener
+        initCameraPreview()
     }
 
     fun initViews(savedInstanceState: Bundle?){
