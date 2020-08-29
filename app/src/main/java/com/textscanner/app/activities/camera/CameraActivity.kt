@@ -99,7 +99,6 @@ class CameraActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureAvailable(surface: SurfaceTexture?, width: Int, height: Int) {
-            previewSize = Size(width, height)
             initCameraPreview()
         }
     }
@@ -110,6 +109,8 @@ class CameraActivity : AppCompatActivity() {
             bitmapImage = bitmap.rotate(90F)
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
+            status = Status.CHECKING_PHOTO
+            enableButtonsAndCameraByStatus(status)
         }
     }
 
@@ -157,8 +158,7 @@ class CameraActivity : AppCompatActivity() {
         btnMakePhoto.setOnClickListener(View.OnClickListener {
             cameraService?.makePhoto()
             stopCameraPreview()
-            status = Status.CHECKING_PHOTO
-            enableButtonsAndCameraByStatus(status)
+            btnMakePhoto.isClickable = false
         })
 
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
@@ -188,6 +188,7 @@ class CameraActivity : AppCompatActivity() {
     fun enableButtonsAndCameraByStatus(status: Status){
         when(status){
             Status.MAKING_PHOTO ->{
+                btnMakePhoto.isClickable = true
                 btnMakePhoto.visibility = ImageButton.VISIBLE
                 btnProcessPhoto.visibility = ImageButton.INVISIBLE
                 btnRemakePhoto.visibility = ImageButton.INVISIBLE
@@ -199,12 +200,8 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
 
-                changeVisibilityOfImageViews(status)
-                surfaceTextureImage.setAspectRatio(
-                    cameraBackResolutionsList[currentCameraBackResolution].height,
-                    cameraBackResolutionsList[currentCameraBackResolution].width
-                )
                 initCameraPreview()
+                changeVisibilityOfImageViews(status)
             }
             Status.CHECKING_PHOTO ->{
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
@@ -291,8 +288,8 @@ class CameraActivity : AppCompatActivity() {
             bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data).rotate(90F)
             status = Status.CHECKING_PHOTO
             setPictureOnDisplay(bitmapImage)
-            enableButtonsAndCameraByStatus(status)
             changeVisibilityOfImageViews(status)
+            enableButtonsAndCameraByStatus(status)
         }
         else{
             status = Status.MAKING_PHOTO
@@ -452,6 +449,10 @@ class CameraActivity : AppCompatActivity() {
         invisibleViewParams.weight = 0.0f
 
         if (status == Status.MAKING_PHOTO){
+            surfaceTextureImage.setAspectRatio(
+                cameraBackResolutionsList[currentCameraBackResolution].height,
+                cameraBackResolutionsList[currentCameraBackResolution].width
+            )
             surfaceTextureImage.layoutParams = visibleViewParams
             surfaceImageView.layoutParams = invisibleViewParams
         }
