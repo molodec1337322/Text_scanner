@@ -18,6 +18,7 @@ import android.os.HandlerThread
 import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Size
+import android.view.Gravity
 import android.view.TextureView
 import android.view.View
 import android.widget.ImageButton
@@ -202,6 +203,10 @@ class CameraActivity : AppCompatActivity() {
                 tvGallery.visibility = TextView.VISIBLE
                 tvSettings.visibility = TextView.VISIBLE
 
+                surfaceTextureImage.setAspectRatio(
+                    cameraBackResolutionsList[currentCameraBackResolution].height,
+                    cameraBackResolutionsList[currentCameraBackResolution].width
+                )
                 initCameraPreview()
                 changeVisibilityOfImageViews(status)
             }
@@ -441,20 +446,17 @@ class CameraActivity : AppCompatActivity() {
     fun changeVisibilityOfImageViews(status: Status){
         val visibleViewParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            0
+            0,
+            1.0f
         )
-        visibleViewParams.weight = 1.0f
+        visibleViewParams.gravity = Gravity.CENTER_HORIZONTAL
         val invisibleViewParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
-            0
+            0,
+            0.0f
         )
-        invisibleViewParams.weight = 0.0f
 
         if (status == Status.MAKING_PHOTO){
-            surfaceTextureImage.setAspectRatio(
-                cameraBackResolutionsList[currentCameraBackResolution].height,
-                cameraBackResolutionsList[currentCameraBackResolution].width
-            )
             surfaceTextureImage.layoutParams = visibleViewParams
             surfaceImageView.layoutParams = invisibleViewParams
         }
