@@ -31,13 +31,14 @@ import com.textscanner.app.cameraAPI.CameraService
 import com.textscanner.app.cameraAPI.OnImageCapturedHandler
 import com.textscanner.app.R
 import com.textscanner.app.TinyDB.TinyDB
+import com.textscanner.app.activities.result.ResultActivity
 import com.textscanner.app.activities.settings.SettingsActivity
 import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
 import com.textscanner.app.extensions.rotate
+import com.textscanner.app.ocrAPI.TessService
 import kotlinx.android.synthetic.main.activity_camera.*
 import java.lang.IndexOutOfBoundsException
-import kotlin.concurrent.thread
 
 class CameraActivity : AppCompatActivity() {
 
@@ -48,6 +49,8 @@ class CameraActivity : AppCompatActivity() {
         const val RESOLUTION_CURRENT: String = "RESOLUTION_CURRENT"
         const val RESOLUTION_LIST: String = "RESOLUTION_LIST"
         const val CAMERA_SETTINGS: String = "CAMERA_SETTINGS"
+
+        const val EXTRACTED_TEXT: String = "EXTRACTED_TEXT"
     }
 
     private val PERMISSION_CODE: Int = 1000
@@ -66,8 +69,7 @@ class CameraActivity : AppCompatActivity() {
     lateinit var tvSettings: TextView
     lateinit var tvGallery: TextView
 
-    var status: Status =
-        Status.MAKING_PHOTO
+    var status: Status = Status.MAKING_PHOTO
 
     lateinit var mCameraManager: CameraManager
     var cameraService: CameraService? = null
@@ -167,6 +169,9 @@ class CameraActivity : AppCompatActivity() {
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
             enableButtonsAndCameraByStatus(status)
+            val string = extractText()
+            val intent = Intent(this, ResultActivity::class.java)
+            startActivity(intent)
         })
 
         btnRemakePhoto.setOnClickListener(View.OnClickListener {
@@ -225,20 +230,25 @@ class CameraActivity : AppCompatActivity() {
                 //waiting for get bitmap from camera
             }
             Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
-                btnMakePhoto.visibility = ImageButton.VISIBLE
-                btnProcessPhoto.visibility = ImageButton.INVISIBLE
-                btnRemakePhoto.visibility = ImageButton.INVISIBLE
-                btnSettings.visibility = ImageButton.VISIBLE
-                btnGallery.visibility = ImageButton.VISIBLE
+                btnMakePhoto.visibility = ImageButton.INVISIBLE
+                btnProcessPhoto.visibility = ImageButton.VISIBLE
+                btnRemakePhoto.visibility = ImageButton.VISIBLE
+                btnSettings.visibility = ImageButton.INVISIBLE
+                btnGallery.visibility = ImageButton.INVISIBLE
 
-                tvProcess.visibility = TextView.INVISIBLE
-                tvRemake.visibility = TextView.INVISIBLE
-                tvGallery.visibility = TextView.VISIBLE
-                tvSettings.visibility = TextView.VISIBLE
+                tvProcess.visibility = TextView.VISIBLE
+                tvRemake.visibility = TextView.VISIBLE
+                tvGallery.visibility = TextView.INVISIBLE
+                tvSettings.visibility = TextView.INVISIBLE
 
-                changeVisibilityOfImageViews(status)
+                //changeVisibilityOfImageViews(status)
             }
         }
+    }
+
+    private fun extractText() {
+        val tessService = TessService()
+        tessService.extractText(bitmapImage!!)
     }
 
     fun setPictureOnDisplay(bitmapImage: Bitmap?){
