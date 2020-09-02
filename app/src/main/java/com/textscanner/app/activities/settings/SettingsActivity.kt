@@ -9,9 +9,9 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
 import android.widget.Spinner
-import com.textscanner.app.CameraSettings
+import com.textscanner.app.models.CameraSettings
 import com.textscanner.app.R
-import com.textscanner.app.TinyDB.TinyDB
+import com.textscanner.app.libs.TinyDB
 import com.textscanner.app.activities.camera.CameraActivity
 import kotlinx.android.synthetic.main.activity_settings.*
 
@@ -60,7 +60,7 @@ class SettingsActivity : AppCompatActivity() {
 
         btnReturnBack.setOnClickListener(View.OnClickListener {
             saveInfoToSharedPreference()
-            val intent: Intent = Intent(this, CameraActivity::class.java)
+            val intent = Intent(this, CameraActivity::class.java)
             intent.putExtra(CameraActivity.RESOLUTION_CURRENT, currentCameraBackResolution)
             startActivity(intent)
         })

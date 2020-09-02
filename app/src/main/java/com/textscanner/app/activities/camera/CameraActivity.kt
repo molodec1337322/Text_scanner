@@ -3,6 +3,7 @@ package com.textscanner.app.activities.camera
 
 import android.Manifest
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -21,21 +22,19 @@ import android.util.Size
 import android.view.Gravity
 import android.view.TextureView
 import android.view.View
-import android.widget.ImageButton
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.textscanner.app.CameraSettings
+import com.textscanner.app.models.CameraSettings
 import com.textscanner.app.cameraAPI.CameraService
 import com.textscanner.app.cameraAPI.OnImageCapturedHandler
 import com.textscanner.app.R
-import com.textscanner.app.TinyDB.TinyDB
+import com.textscanner.app.libs.TinyDB
 import com.textscanner.app.activities.result.ResultActivity
 import com.textscanner.app.activities.settings.SettingsActivity
 import com.textscanner.app.custom.AutoFitImageView
 import com.textscanner.app.custom.AutoFitTextureView
 import com.textscanner.app.extensions.rotate
+import com.textscanner.app.ocrAPI.OnTextExtracted
 import com.textscanner.app.ocrAPI.TessService
 import kotlinx.android.synthetic.main.activity_camera.*
 import java.lang.IndexOutOfBoundsException
@@ -70,6 +69,7 @@ class CameraActivity : AppCompatActivity() {
     lateinit var tvGallery: TextView
 
     var status: Status = Status.MAKING_PHOTO
+    var progressBar: ProgressDialog? = null
 
     lateinit var mCameraManager: CameraManager
     var cameraService: CameraService? = null
@@ -81,7 +81,9 @@ class CameraActivity : AppCompatActivity() {
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
     var bitmapImage: Bitmap? = null
-    var previewSize: Size? = null
+
+    val context: Context = this
+    val activity: Activity = this
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -106,14 +108,22 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private val onImageCapturedHandler = object:
-        OnImageCapturedHandler {
+    private val onImageCapturedHandler = object: OnImageCapturedHandler {
         override fun onCaptured(bitmap: Bitmap) {
             bitmapImage = bitmap.rotate(90F)
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
             status = Status.CHECKING_PHOTO
             enableButtonsAndCameraByStatus(status)
+        }
+    }
+
+    private val onTextExtractedHandler = object: OnTextExtracted{
+        override fun onTextExtracted(text: String) {
+            hideProgress()
+            val intent = Intent(context, ResultActivity::class.java)
+            intent.putExtra(EXTRACTED_TEXT, text)
+            startActivity(intent)
         }
     }
 
@@ -169,9 +179,7 @@ class CameraActivity : AppCompatActivity() {
         btnProcessPhoto.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
             enableButtonsAndCameraByStatus(status)
-            val string = extractText()
-            val intent = Intent(this, ResultActivity::class.java)
-            startActivity(intent)
+            extractTextFromBitmap()
         })
 
         btnRemakePhoto.setOnClickListener(View.OnClickListener {
@@ -191,6 +199,12 @@ class CameraActivity : AppCompatActivity() {
             intent.type = "image/*"
             startActivityForResult(intent, OPERATION_CHOOSE_PHOTO)
         })
+    }
+
+    private fun extractTextFromBitmap() {
+        showProgress()
+        val tessService = TessService(this,"rus", onTextExtractedHandler)
+        tessService.extractText(bitmapImage!!)
     }
 
     fun enableButtonsAndCameraByStatus(status: Status){
@@ -216,6 +230,9 @@ class CameraActivity : AppCompatActivity() {
                 changeVisibilityOfImageViews(status)
             }
             Status.CHECKING_PHOTO ->{
+                btnProcessPhoto.isClickable = true
+                btnRemakePhoto.isClickable = true
+
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
                 btnProcessPhoto.visibility = ImageButton.VISIBLE
                 btnRemakePhoto.visibility = ImageButton.VISIBLE
@@ -229,7 +246,10 @@ class CameraActivity : AppCompatActivity() {
 
                 //waiting for get bitmap from camera
             }
-            Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
+            Status.PROCESING_PHOTO ->{
+                btnProcessPhoto.isClickable = false
+                btnRemakePhoto.isClickable = false
+
                 btnMakePhoto.visibility = ImageButton.INVISIBLE
                 btnProcessPhoto.visibility = ImageButton.VISIBLE
                 btnRemakePhoto.visibility = ImageButton.VISIBLE
@@ -240,15 +260,8 @@ class CameraActivity : AppCompatActivity() {
                 tvRemake.visibility = TextView.VISIBLE
                 tvGallery.visibility = TextView.INVISIBLE
                 tvSettings.visibility = TextView.INVISIBLE
-
-                //changeVisibilityOfImageViews(status)
             }
         }
-    }
-
-    private fun extractText() {
-        val tessService = TessService()
-        tessService.extractText(bitmapImage!!)
     }
 
     fun setPictureOnDisplay(bitmapImage: Bitmap?){
@@ -474,5 +487,15 @@ class CameraActivity : AppCompatActivity() {
             surfaceTextureImage.layoutParams = invisibleViewParams
             surfaceImageView.layoutParams = visibleViewParams
         }
+    }
+
+    fun showProgress(){
+        progressBar = ProgressDialog.show(this, "", "")
+        progressBar!!.setCancelable(false)
+    }
+
+    fun hideProgress(){
+        progressBar?.dismiss()
+        progressBar = null
     }
 }
