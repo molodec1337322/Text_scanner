@@ -15,10 +15,13 @@ class TessService(
 
     fun extractText(bitmap: Bitmap){
         val run = Runnable {
+            val binarizedBitmap = Binarizer.binarizeByThreshold(bitmap, 128)
+            bitmap.recycle()
+
             val tessAPI = TessBaseAPI()
             val path = App.instance!!.tessDataParentDirectory
-            tessAPI.init(path, language)
-            tessAPI.setImage(bitmap)
+            tessAPI.init(path, "$language")
+            tessAPI.setImage(binarizedBitmap)
             val extractedText = tessAPI.utF8Text
             tessAPI.end()
             activity.runOnUiThread(Runnable {

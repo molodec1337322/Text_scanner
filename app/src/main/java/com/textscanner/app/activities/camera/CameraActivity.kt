@@ -490,7 +490,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     fun showProgress(){
-        progressBar = ProgressDialog.show(this, "", "")
+        progressBar = ProgressDialog.show(this, null, null)
         progressBar!!.setCancelable(false)
     }
 
