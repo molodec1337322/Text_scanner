@@ -3,6 +3,7 @@ package com.textscanner.app.activities.camera
 
 import android.Manifest
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -31,13 +32,13 @@ import com.textscanner.app.cameraAPI.CameraService
 import com.textscanner.app.cameraAPI.OnImageCapturedHandler
 import com.textscanner.app.R
 import com.textscanner.app.TinyDB.TinyDB
+import com.textscanner.app.activities.result.ResultActivity
 import com.textscanner.app.activities.settings.SettingsActivity
-import com.textscanner.app.custom.AutoFitImageView
-import com.textscanner.app.custom.AutoFitTextureView
 import com.textscanner.app.extensions.rotate
+import com.textscanner.app.ocr.MLKitOCRService
+import com.textscanner.app.ocr.OnTextExtractedHandler
 import kotlinx.android.synthetic.main.activity_camera.*
 import java.lang.IndexOutOfBoundsException
-import kotlin.concurrent.thread
 
 class CameraActivity : AppCompatActivity() {
 
@@ -48,26 +49,15 @@ class CameraActivity : AppCompatActivity() {
         const val RESOLUTION_CURRENT: String = "RESOLUTION_CURRENT"
         const val RESOLUTION_LIST: String = "RESOLUTION_LIST"
         const val CAMERA_SETTINGS: String = "CAMERA_SETTINGS"
+
+        const val EXTRACTED_TEXT: String = "EXTRACTED_TEXT"
     }
 
     private val PERMISSION_CODE: Int = 1000
     private val OPERATION_CHOOSE_PHOTO = 100
 
-    lateinit var btnMakePhoto: ImageButton
-    lateinit var btnProcessPhoto: ImageButton
-    lateinit var btnRemakePhoto: ImageButton
-    lateinit var btnSettings: ImageButton
-    lateinit var btnGallery: ImageButton
-    lateinit var surfaceTextureImage: AutoFitTextureView
-    lateinit var surfaceImageView: AutoFitImageView
-
-    lateinit var tvProcess: TextView
-    lateinit var tvRemake: TextView
-    lateinit var tvSettings: TextView
-    lateinit var tvGallery: TextView
-
-    var status: Status =
-        Status.MAKING_PHOTO
+    var status: Status = Status.MAKING_PHOTO
+    var progressBar: ProgressDialog? = null
 
     lateinit var mCameraManager: CameraManager
     var cameraService: CameraService? = null
@@ -78,8 +68,12 @@ class CameraActivity : AppCompatActivity() {
     var currentCameraBackResolution: Int = 0
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
+
     var bitmapImage: Bitmap? = null
-    var previewSize: Size? = null
+    var imageDegrees = 0f
+
+    val context: Context = this
+    val activity: Activity = this
 
     private val surfaceTextureListener = object: TextureView.SurfaceTextureListener{
         override fun onSurfaceTextureSizeChanged(
@@ -104,12 +98,27 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private val onImageCapturedHandler = object:
-        OnImageCapturedHandler {
+    private val onImageCapturedHandler = object: OnImageCapturedHandler {
         override fun onCaptured(bitmap: Bitmap) {
-            bitmapImage = bitmap.rotate(90F)
+            bitmapImage = bitmap//.rotate(90F)
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
+            status = Status.CHECKING_PHOTO
+            enableButtonsAndCameraByStatus(status)
+        }
+    }
+
+    private val onTextExtractedHandler = object: OnTextExtractedHandler {
+        override fun onTextExtracted(text: String) {
+            hideProgress()
+            val intent = Intent(context, ResultActivity::class.java)
+            intent.putExtra(EXTRACTED_TEXT, text)
+            startActivity(intent)
+        }
+
+        override fun onTextExtractionFailure() {
+            hideProgress()
+            Toast.makeText(context, "Не удалось связаться с сервером\nПопробуйте чуть позже", Toast.LENGTH_SHORT).show()
             status = Status.CHECKING_PHOTO
             enableButtonsAndCameraByStatus(status)
         }
@@ -135,52 +144,50 @@ class CameraActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         startBackgroundThread()
-        surfaceTextureImage.surfaceTextureListener = surfaceTextureListener
+        tv_image.surfaceTextureListener = surfaceTextureListener
         initCameraPreview()
     }
 
     fun initViews(savedInstanceState: Bundle?){
-        btnMakePhoto = btn_make_photo
-        btnProcessPhoto = btn_process_photo
-        btnRemakePhoto = btn_remake_photo
-        btnSettings = btn_settings
-        btnGallery = btn_gallery
-        surfaceTextureImage = tv_image
-        surfaceImageView = iv_image
-
-        tvProcess = tv_process
-        tvRemake = tv_remake
-        tvGallery = tv_gallery
-        tvSettings = tv_settings
 
         val statusSaved = savedInstanceState?.getString(STATUS) ?: "MAKING_PHOTO"
 
         status = Status.valueOf(statusSaved)
         enableButtonsAndCameraByStatus(status)
 
-        btnMakePhoto.setOnClickListener(View.OnClickListener {
-            cameraService?.makePhoto()
-            stopCameraPreview()
-            btnMakePhoto.isClickable = false
+        btn_make_photo.setOnClickListener(View.OnClickListener {
+            if (status == Status.MAKING_PHOTO){
+                cameraService?.makePhoto()
+                stopCameraPreview()
+                btn_make_photo.isClickable = false
+            }
+            else if(status == Status.CHECKING_PHOTO){
+                status = Status.MAKING_PHOTO
+                enableButtonsAndCameraByStatus(status)
+            }
         })
 
-        btnProcessPhoto.setOnClickListener(View.OnClickListener {
+        btn_process_photo.setOnClickListener(View.OnClickListener {
             status = Status.PROCESING_PHOTO
             enableButtonsAndCameraByStatus(status)
+            extractTextFromBitmap()
         })
 
-        btnRemakePhoto.setOnClickListener(View.OnClickListener {
-            status = Status.MAKING_PHOTO
-            enableButtonsAndCameraByStatus(status)
+        btn_rotate.setOnClickListener(View.OnClickListener {
+            imageDegrees += 90f
+            if(imageDegrees >= 360f) imageDegrees = 0f
+            bitmapImage!!.rotate(0f)
+            setPictureOnDisplay(bitmapImage)
+            changeVisibilityOfImageViews(status)
         })
 
-        btnSettings.setOnClickListener(View.OnClickListener{
+        btn_settings.setOnClickListener(View.OnClickListener{
             stopCameraPreview()
             val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         })
 
-        btnGallery.setOnClickListener(View.OnClickListener{
+        btn_gallery.setOnClickListener(View.OnClickListener{
             stopCameraPreview()
             val intent = Intent(Intent.ACTION_PICK)
             intent.type = "image/*"
@@ -191,19 +198,19 @@ class CameraActivity : AppCompatActivity() {
     fun enableButtonsAndCameraByStatus(status: Status){
         when(status){
             Status.MAKING_PHOTO ->{
-                btnMakePhoto.isClickable = true
-                btnMakePhoto.visibility = ImageButton.VISIBLE
-                btnProcessPhoto.visibility = ImageButton.INVISIBLE
-                btnRemakePhoto.visibility = ImageButton.INVISIBLE
-                btnSettings.visibility = ImageButton.VISIBLE
-                btnGallery.visibility = ImageButton.VISIBLE
+                btn_make_photo.isClickable = true
+                btn_make_photo.visibility = ImageButton.VISIBLE
+                btn_process_photo.visibility = ImageButton.INVISIBLE
+                btn_rotate.visibility = ImageButton.INVISIBLE
+                btn_settings.visibility = ImageButton.VISIBLE
+                btn_gallery.visibility = ImageButton.VISIBLE
 
-                tvProcess.visibility = TextView.INVISIBLE
-                tvRemake.visibility = TextView.INVISIBLE
-                tvGallery.visibility = TextView.VISIBLE
-                tvSettings.visibility = TextView.VISIBLE
+                tv_process.visibility = TextView.INVISIBLE
+                tv_rotate.visibility = TextView.INVISIBLE
+                tv_gallery.visibility = TextView.VISIBLE
+                tv_settings.visibility = TextView.VISIBLE
 
-                surfaceTextureImage.setAspectRatio(
+                tv_image.setAspectRatio(
                     cameraBackResolutionsList[currentCameraBackResolution].height,
                     cameraBackResolutionsList[currentCameraBackResolution].width
                 )
@@ -211,39 +218,50 @@ class CameraActivity : AppCompatActivity() {
                 changeVisibilityOfImageViews(status)
             }
             Status.CHECKING_PHOTO ->{
-                btnMakePhoto.visibility = ImageButton.INVISIBLE
-                btnProcessPhoto.visibility = ImageButton.VISIBLE
-                btnRemakePhoto.visibility = ImageButton.VISIBLE
-                btnSettings.visibility = ImageButton.INVISIBLE
-                btnGallery.visibility = ImageButton.INVISIBLE
+                btn_process_photo.isClickable = true
+                btn_rotate.isClickable = true
+                btn_make_photo.isClickable = true
 
-                tvProcess.visibility = TextView.VISIBLE
-                tvRemake.visibility = TextView.VISIBLE
-                tvGallery.visibility = TextView.INVISIBLE
-                tvSettings.visibility = TextView.INVISIBLE
+                //btn_make_photo.visibility = ImageButton.INVISIBLE
+                btn_process_photo.visibility = ImageButton.VISIBLE
+                btn_rotate.visibility = ImageButton.VISIBLE
+                btn_settings.visibility = ImageButton.INVISIBLE
+                btn_gallery.visibility = ImageButton.INVISIBLE
+
+                tv_process.visibility = TextView.VISIBLE
+                tv_rotate.visibility = TextView.VISIBLE
+                tv_gallery.visibility = TextView.INVISIBLE
+                tv_settings.visibility = TextView.INVISIBLE
 
                 //waiting for get bitmap from camera
             }
-            Status.PROCESING_PHOTO ->{ // сделать нормально, когда прикручу камеру
-                btnMakePhoto.visibility = ImageButton.VISIBLE
-                btnProcessPhoto.visibility = ImageButton.INVISIBLE
-                btnRemakePhoto.visibility = ImageButton.INVISIBLE
-                btnSettings.visibility = ImageButton.VISIBLE
-                btnGallery.visibility = ImageButton.VISIBLE
+            Status.PROCESING_PHOTO ->{
+                btn_process_photo.isClickable = false
+                btn_rotate.isClickable = false
 
-                tvProcess.visibility = TextView.INVISIBLE
-                tvRemake.visibility = TextView.INVISIBLE
-                tvGallery.visibility = TextView.VISIBLE
-                tvSettings.visibility = TextView.VISIBLE
+                //btn_make_photo.visibility = ImageButton.INVISIBLE
+                btn_process_photo.visibility = ImageButton.VISIBLE
+                btn_rotate.visibility = ImageButton.VISIBLE
+                btn_settings.visibility = ImageButton.INVISIBLE
+                btn_gallery.visibility = ImageButton.INVISIBLE
 
-                changeVisibilityOfImageViews(status)
+                tv_process.visibility = TextView.VISIBLE
+                tv_rotate.visibility = TextView.VISIBLE
+                tv_gallery.visibility = TextView.INVISIBLE
+                tv_settings.visibility = TextView.INVISIBLE
             }
         }
     }
 
+    private fun extractTextFromBitmap() {
+        showProgress()
+        val ocrService = MLKitOCRService(this, this, onTextExtractedHandler)
+        ocrService.recognizeText(bitmapImage!!)
+    }
+
     fun setPictureOnDisplay(bitmapImage: Bitmap?){
-        surfaceImageView.setAspectRatio(bitmapImage!!.width, bitmapImage.height)
-        surfaceImageView.setImageBitmap(bitmapImage)
+        iv_image.setAspectRatio(bitmapImage!!.width, bitmapImage.height)
+        iv_image.setImageBitmap(bitmapImage)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -399,7 +417,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     fun initCameraPreview(){
-        if(cameraService == null && surfaceTextureImage.isAvailable){
+        if(cameraService == null && tv_image.isAvailable){
             val displayMetrics = DisplayMetrics()
             windowManager.defaultDisplay.getMetrics(displayMetrics)
 
@@ -412,7 +430,7 @@ class CameraActivity : AppCompatActivity() {
                 this,
                 this,
                 mCameraManager,
-                surfaceTextureImage,
+                tv_image,
                 mBackgroundHandler,
                 mCameraBack.toString(),
                 cameraBackResolutionsList[currentCameraBackResolution],
@@ -457,12 +475,22 @@ class CameraActivity : AppCompatActivity() {
         )
 
         if (status == Status.MAKING_PHOTO){
-            surfaceTextureImage.layoutParams = visibleViewParams
-            surfaceImageView.layoutParams = invisibleViewParams
+            tv_image.layoutParams = visibleViewParams
+            iv_image.layoutParams = invisibleViewParams
         }
         else{
-            surfaceTextureImage.layoutParams = invisibleViewParams
-            surfaceImageView.layoutParams = visibleViewParams
+            tv_image.layoutParams = invisibleViewParams
+            iv_image.layoutParams = visibleViewParams
         }
+    }
+
+    fun showProgress(){
+        progressBar = ProgressDialog.show(this, null, null)
+        progressBar!!.setCancelable(false)
+    }
+
+    fun hideProgress(){
+        progressBar?.dismiss()
+        progressBar = null
     }
 }
