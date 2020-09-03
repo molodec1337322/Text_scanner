@@ -15,11 +15,25 @@ class TessService(
 
     fun extractText(bitmap: Bitmap){
         val run = Runnable {
-            val binarizedBitmap = Binarizer.binarizeByThreshold(bitmap, 128)
+
+            val binarizedBitmap = Binarizer.binarizeByThreshold(bitmap, 80)
             bitmap.recycle()
 
             val tessAPI = TessBaseAPI()
             val path = App.instance!!.tessDataParentDirectory
+            tessAPI.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя1234567890,.?! ")
+
+            tessAPI.setVariable("load_system_dawg", "0")
+            tessAPI.setVariable("load_freq_dawg", "0")
+            tessAPI.setVariable("load_unambig_dawg", "0")
+            tessAPI.setVariable("load_punc_dawg", "0")
+            tessAPI.setVariable("load_number_dawg", "0")
+            tessAPI.setVariable("load_fixed_length_dawgs", "0")
+            tessAPI.setVariable("load_bigram_dawg", "0")
+            tessAPI.setVariable("wordrec_enable_assoc", "0")
+            tessAPI.setVariable("tessedit_enable_bigram_correction", "0")
+            tessAPI.setVariable("assume_fixed_pitch_char_segment", "1")
+
             tessAPI.init(path, "$language")
             tessAPI.setImage(binarizedBitmap)
             val extractedText = tessAPI.utF8Text

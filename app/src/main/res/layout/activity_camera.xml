@@ -112,17 +112,17 @@
                 android:orientation="vertical">
 
                 <ImageButton
-                    android:id="@+id/btn_remake_photo"
+                    android:id="@+id/btn_rotate"
                     android:layout_width="70dp"
                     android:layout_height="60dp"
                     android:src="@drawable/ic_refresh_black_60dp"
                     android:background="@android:color/black"
                     android:visibility="invisible"/>
                 <TextView
-                    android:id="@+id/tv_remake"
+                    android:id="@+id/tv_rotate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Сделать еще"
+                    android:text="Повернуть"
                     android:layout_gravity="center_horizontal"
                     android:textColor="@color/color_gray_light"
                     android:textSize="@dimen/font_tiny_10"

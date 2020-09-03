@@ -67,7 +67,9 @@ class CameraActivity : AppCompatActivity() {
     var currentCameraBackResolution: Int = 0
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
+
     var bitmapImage: Bitmap? = null
+    var imageDegrees = 0f
 
     val context: Context = this
     val activity: Activity = this
@@ -97,7 +99,7 @@ class CameraActivity : AppCompatActivity() {
 
     private val onImageCapturedHandler = object: OnImageCapturedHandler {
         override fun onCaptured(bitmap: Bitmap) {
-            bitmapImage = bitmap.rotate(90F)
+            bitmapImage = bitmap//.rotate(90F)
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
             status = Status.CHECKING_PHOTO
@@ -146,9 +148,15 @@ class CameraActivity : AppCompatActivity() {
         enableButtonsAndCameraByStatus(status)
 
         btn_make_photo.setOnClickListener(View.OnClickListener {
-            cameraService?.makePhoto()
-            stopCameraPreview()
-            btn_make_photo.isClickable = false
+            if (status == Status.MAKING_PHOTO){
+                cameraService?.makePhoto()
+                stopCameraPreview()
+                btn_make_photo.isClickable = false
+            }
+            else if(status == Status.CHECKING_PHOTO){
+                status = Status.MAKING_PHOTO
+                enableButtonsAndCameraByStatus(status)
+            }
         })
 
         btn_process_photo.setOnClickListener(View.OnClickListener {
@@ -157,9 +165,12 @@ class CameraActivity : AppCompatActivity() {
             extractTextFromBitmap()
         })
 
-        btn_remake_photo.setOnClickListener(View.OnClickListener {
-            status = Status.MAKING_PHOTO
-            enableButtonsAndCameraByStatus(status)
+        btn_rotate.setOnClickListener(View.OnClickListener {
+            imageDegrees += 90f
+            if(imageDegrees >= 360f) imageDegrees = 0f
+            bitmapImage!!.rotate(0f)
+            setPictureOnDisplay(bitmapImage)
+            changeVisibilityOfImageViews(status)
         })
 
         btn_settings.setOnClickListener(View.OnClickListener{
@@ -188,12 +199,12 @@ class CameraActivity : AppCompatActivity() {
                 btn_make_photo.isClickable = true
                 btn_make_photo.visibility = ImageButton.VISIBLE
                 btn_process_photo.visibility = ImageButton.INVISIBLE
-                btn_remake_photo.visibility = ImageButton.INVISIBLE
+                btn_rotate.visibility = ImageButton.INVISIBLE
                 btn_settings.visibility = ImageButton.VISIBLE
                 btn_gallery.visibility = ImageButton.VISIBLE
 
                 tv_process.visibility = TextView.INVISIBLE
-                tv_remake.visibility = TextView.INVISIBLE
+                tv_rotate.visibility = TextView.INVISIBLE
                 tv_gallery.visibility = TextView.VISIBLE
                 tv_settings.visibility = TextView.VISIBLE
 
@@ -206,16 +217,17 @@ class CameraActivity : AppCompatActivity() {
             }
             Status.CHECKING_PHOTO ->{
                 btn_process_photo.isClickable = true
-                btn_remake_photo.isClickable = true
+                btn_rotate.isClickable = true
+                btn_make_photo.isClickable = true
 
                 //btn_make_photo.visibility = ImageButton.INVISIBLE
                 btn_process_photo.visibility = ImageButton.VISIBLE
-                btn_remake_photo.visibility = ImageButton.VISIBLE
+                btn_rotate.visibility = ImageButton.VISIBLE
                 btn_settings.visibility = ImageButton.INVISIBLE
                 btn_gallery.visibility = ImageButton.INVISIBLE
 
                 tv_process.visibility = TextView.VISIBLE
-                tv_remake.visibility = TextView.VISIBLE
+                tv_rotate.visibility = TextView.VISIBLE
                 tv_gallery.visibility = TextView.INVISIBLE
                 tv_settings.visibility = TextView.INVISIBLE
 
@@ -223,16 +235,16 @@ class CameraActivity : AppCompatActivity() {
             }
             Status.PROCESING_PHOTO ->{
                 btn_process_photo.isClickable = false
-                btn_remake_photo.isClickable = false
+                btn_rotate.isClickable = false
 
-                btn_make_photo.visibility = ImageButton.INVISIBLE
+                //btn_make_photo.visibility = ImageButton.INVISIBLE
                 btn_process_photo.visibility = ImageButton.VISIBLE
-                btn_remake_photo.visibility = ImageButton.VISIBLE
+                btn_rotate.visibility = ImageButton.VISIBLE
                 btn_settings.visibility = ImageButton.INVISIBLE
                 btn_gallery.visibility = ImageButton.INVISIBLE
 
                 tv_process.visibility = TextView.VISIBLE
-                tv_remake.visibility = TextView.VISIBLE
+                tv_rotate.visibility = TextView.VISIBLE
                 tv_gallery.visibility = TextView.INVISIBLE
                 tv_settings.visibility = TextView.INVISIBLE
             }
