@@ -100,7 +100,7 @@ class CameraActivity : AppCompatActivity() {
 
     private val onImageCapturedHandler = object: OnImageCapturedHandler {
         override fun onCaptured(bitmap: Bitmap) {
-            bitmapImage = bitmap//.rotate(90F)
+            bitmapImage = bitmap
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
             status = Status.CHECKING_PHOTO
@@ -145,7 +145,9 @@ class CameraActivity : AppCompatActivity() {
         super.onResume()
         startBackgroundThread()
         tv_image.surfaceTextureListener = surfaceTextureListener
-        initCameraPreview()
+        if(status == Status.MAKING_PHOTO){
+            initCameraPreview()
+        }
     }
 
     fun initViews(savedInstanceState: Bundle?){
@@ -174,9 +176,7 @@ class CameraActivity : AppCompatActivity() {
         })
 
         btn_rotate.setOnClickListener(View.OnClickListener {
-            imageDegrees += 90f
-            if(imageDegrees >= 360f) imageDegrees = 0f
-            bitmapImage!!.rotate(0f)
+            bitmapImage = bitmapImage!!.rotate(90f)
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
         })
@@ -222,7 +222,6 @@ class CameraActivity : AppCompatActivity() {
                 btn_rotate.isClickable = true
                 btn_make_photo.isClickable = true
 
-                //btn_make_photo.visibility = ImageButton.INVISIBLE
                 btn_process_photo.visibility = ImageButton.VISIBLE
                 btn_rotate.visibility = ImageButton.VISIBLE
                 btn_settings.visibility = ImageButton.INVISIBLE
@@ -239,7 +238,6 @@ class CameraActivity : AppCompatActivity() {
                 btn_process_photo.isClickable = false
                 btn_rotate.isClickable = false
 
-                //btn_make_photo.visibility = ImageButton.INVISIBLE
                 btn_process_photo.visibility = ImageButton.VISIBLE
                 btn_rotate.visibility = ImageButton.VISIBLE
                 btn_settings.visibility = ImageButton.INVISIBLE
