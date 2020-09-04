@@ -60,7 +60,7 @@ class SettingsActivity : AppCompatActivity() {
 
         btnReturnBack.setOnClickListener(View.OnClickListener {
             saveInfoToSharedPreference()
-            val intent: Intent = Intent(this, CameraActivity::class.java)
+            val intent = Intent(this, CameraActivity::class.java)
             intent.putExtra(CameraActivity.RESOLUTION_CURRENT, currentCameraBackResolution)
             startActivity(intent)
         })

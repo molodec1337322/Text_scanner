@@ -70,7 +70,6 @@ class CameraActivity : AppCompatActivity() {
     var mBackgroundHandler: Handler? = null
 
     var bitmapImage: Bitmap? = null
-    var imageDegrees = 0f
 
     val context: Context = this
     val activity: Activity = this
@@ -324,8 +323,9 @@ class CameraActivity : AppCompatActivity() {
         val tinyDB = TinyDB(this)
         cameraInfoSettings = tinyDB.getObject(CAMERA_SETTINGS, CameraSettings::class.java)
 
-        if (cameraInfoSettings == null){
+        if (cameraInfoSettings == null || cameraInfoSettings?.backCameraResolutionsList?.get(0) == Size(0, 0)){
             getInfoFromHardware()
+            currentCameraBackResolution = intent.getIntExtra(RESOLUTION_CURRENT, 0)
             putInfoInSharedPreference(tinyDB)
         }
         else{
