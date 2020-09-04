@@ -24,22 +24,77 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Результат сканирования"
-            android:textSize="@dimen/font_huge_24"
+            android:textSize="@dimen/font_large_20"
             android:layout_gravity="center"/>
 
     </LinearLayout>
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:layout_weight="1">
 
         <EditText
             android:id="@+id/ed_result"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="@dimen/font_normal_16"
-            android:inputType="textMultiLine"/>
+            android:inputType="textMultiLine"
+            android:background="@android:color/transparent"/>
 
-    </RelativeLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:orientation="horizontal"
+        android:background="@color/color_gray_light">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="0.5"
+            android:orientation="vertical"
+            android:layout_gravity="center">
+
+            <Button
+                android:id="@+id/btn_copy"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="Копировать"
+                android:textStyle="normal"
+                android:textColor="@color/color_gray_dark"
+                android:textSize="@dimen/font_tiny_10"
+                android:drawableTop="@drawable/ic_baseline_file_copy_25"
+                android:background="@android:color/transparent"
+                android:gravity="bottom|center_horizontal"/>
+
+        </LinearLayout>
+
+
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="0.5"
+            android:orientation="vertical"
+            android:layout_gravity="center">
+
+            <Button
+                android:id="@+id/btn_share"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="Поделиться"
+                android:textStyle="normal"
+                android:textColor="@color/color_gray_dark"
+                android:textSize="@dimen/font_tiny_10"
+                android:drawableTop="@drawable/ic_baseline_share_25"
+                android:background="@android:color/transparent"
+                android:gravity="bottom|center_horizontal"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>

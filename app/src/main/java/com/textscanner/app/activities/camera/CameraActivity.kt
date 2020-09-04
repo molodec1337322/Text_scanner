@@ -13,6 +13,7 @@ import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -38,6 +39,7 @@ import com.textscanner.app.extensions.rotate
 import com.textscanner.app.ocr.MLKitOCRService
 import com.textscanner.app.ocr.OnTextExtractedHandler
 import kotlinx.android.synthetic.main.activity_camera.*
+import java.lang.Exception
 import java.lang.IndexOutOfBoundsException
 
 class CameraActivity : AppCompatActivity() {
@@ -115,9 +117,14 @@ class CameraActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        override fun onTextExtractionFailure() {
+        override fun onTextExtractionFailure(exception: Exception) {
             hideProgress()
-            Toast.makeText(context, "Не удалось связаться с сервером\nПопробуйте чуть позже", Toast.LENGTH_SHORT).show()
+            if (exception.message == "Cloud Vision batchAnnotateImages call failure"){
+                Toast.makeText(context, "Не удалось связаться с сервером\nПопробуйте чуть позже", Toast.LENGTH_SHORT).show()
+            }
+            else{
+                Toast.makeText(context, "Ошибка обработки фото\nПопрбуйте еще раз", Toast.LENGTH_SHORT).show()
+            }
             status = Status.CHECKING_PHOTO
             enableButtonsAndCameraByStatus(status)
         }
@@ -198,6 +205,8 @@ class CameraActivity : AppCompatActivity() {
         when(status){
             Status.MAKING_PHOTO ->{
                 btn_make_photo.isClickable = true
+                btn_make_photo.setImageURI(Uri.parse("android.resource://com.textscanner.app/${R.drawable.ic_photo_camera_black_60dp}"))
+
                 btn_make_photo.visibility = ImageButton.VISIBLE
                 btn_process_photo.visibility = ImageButton.INVISIBLE
                 btn_rotate.visibility = ImageButton.INVISIBLE
@@ -220,6 +229,7 @@ class CameraActivity : AppCompatActivity() {
                 btn_process_photo.isClickable = true
                 btn_rotate.isClickable = true
                 btn_make_photo.isClickable = true
+                btn_make_photo.setImageURI(Uri.parse("android.resource://com.textscanner.app/${R.drawable.ic_baseline_clear_60}"))
 
                 btn_process_photo.visibility = ImageButton.VISIBLE
                 btn_rotate.visibility = ImageButton.VISIBLE
@@ -465,7 +475,7 @@ class CameraActivity : AppCompatActivity() {
             0,
             1.0f
         )
-        visibleViewParams.gravity = Gravity.CENTER_HORIZONTAL
+        visibleViewParams.gravity = Gravity.CENTER
         val invisibleViewParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             0,

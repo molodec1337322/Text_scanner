@@ -32,7 +32,7 @@ class MLKitOCRService(
                 }
                 .addOnFailureListener { exception: Exception ->
                     activity.runOnUiThread(Runnable {
-                        onTextExtractedHandler.onTextExtractionFailure()
+                        onTextExtractedHandler.onTextExtractionFailure(exception)
                     })
                 }
         }
