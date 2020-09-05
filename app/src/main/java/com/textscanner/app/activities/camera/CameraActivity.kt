@@ -194,7 +194,6 @@ class CameraActivity : AppCompatActivity() {
         })
 
         btn_gallery.setOnClickListener(View.OnClickListener{
-            stopCameraPreview()
             val intent = Intent(Intent.ACTION_PICK)
             intent.type = "image/*"
             startActivityForResult(intent, OPERATION_CHOOSE_PHOTO)
@@ -317,14 +316,11 @@ class CameraActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK && requestCode == OPERATION_CHOOSE_PHOTO){
+            stopCameraPreview()
             bitmapImage = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data).rotate(90F)
             status = Status.CHECKING_PHOTO
             setPictureOnDisplay(bitmapImage)
             changeVisibilityOfImageViews(status)
-            enableButtonsAndCameraByStatus(status)
-        }
-        else{
-            status = Status.MAKING_PHOTO
             enableButtonsAndCameraByStatus(status)
         }
     }
