@@ -51,22 +51,17 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <ImageButton
+                <Button
                     android:id="@+id/btn_settings"
                     android:layout_width="60dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_settings_black_40dp"
-                    android:background="@android:color/black"
-                    android:layout_gravity="center_vertical|start"/>
-
-                <TextView
-                    android:id="@+id/tv_settings"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="60dp"
+                    android:drawableTop="@drawable/ic_settings_black_40dp"
+                    android:background="@android:color/transparent"
+                    android:layout_gravity="center_vertical|start"
                     android:text="Настройки"
                     android:textColor="@color/color_gray_light"
-                    android:layout_gravity="center_horizontal"
-                    android:textSize="@dimen/font_tiny_10"/>
+                    android:textSize="@dimen/font_atom_8"
+                    android:gravity="bottom|center_horizontal"/>
 
             </LinearLayout>
 
@@ -76,21 +71,16 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <ImageButton
+                <Button
                     android:id="@+id/btn_process_photo"
                     android:layout_width="70dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/ic_check_black_60dp"
-                    android:background="@android:color/black"
-                    android:visibility="invisible"/>
-                <TextView
-                    android:id="@+id/tv_process"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="70dp"
+                    android:drawableTop="@drawable/ic_check_black_60dp"
+                    android:background="@android:color/transparent"
                     android:text="Обработать"
-                    android:layout_gravity="center_horizontal"
-                    android:textColor="@color/color_gray_light"
+                    android:gravity="bottom|center_horizontal"
                     android:textSize="@dimen/font_tiny_10"
+                    android:textColor="@color/color_gray_light"
                     android:visibility="invisible"/>
 
             </LinearLayout>
@@ -110,21 +100,16 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <ImageButton
+                <Button
                     android:id="@+id/btn_rotate"
                     android:layout_width="70dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/ic_refresh_black_60dp"
-                    android:background="@android:color/black"
-                    android:visibility="invisible"/>
-                <TextView
-                    android:id="@+id/tv_rotate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="70dp"
+                    android:drawableTop="@drawable/ic_refresh_black_60dp"
+                    android:background="@android:color/transparent"
                     android:text="Повернуть"
-                    android:layout_gravity="center_horizontal"
-                    android:textColor="@color/color_gray_light"
+                    android:gravity="bottom|center_horizontal"
                     android:textSize="@dimen/font_tiny_10"
+                    android:textColor="@color/color_gray_light"
                     android:visibility="invisible"/>
 
             </LinearLayout>
@@ -136,21 +121,17 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <ImageButton
+                <Button
                     android:id="@+id/btn_gallery"
                     android:layout_width="60dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_baseline_image_40"
-                    android:background="@android:color/black"
-                    android:layout_gravity="center_vertical|end"/>
-                <TextView
-                    android:id="@+id/tv_gallery"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="60dp"
+                    android:drawableTop="@drawable/ic_baseline_image_40"
+                    android:background="@android:color/transparent"
+                    android:layout_gravity="center_vertical|end"
                     android:text="Из галлереи"
-                    android:layout_gravity="center_horizontal"
+                    android:gravity="bottom|center_horizontal"
                     android:textColor="@color/color_gray_light"
-                    android:textSize="@dimen/font_tiny_10"/>
+                    android:textSize="@dimen/font_atom_8"/>
 
             </LinearLayout>
 

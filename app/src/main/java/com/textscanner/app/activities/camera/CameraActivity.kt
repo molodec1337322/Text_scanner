@@ -212,11 +212,6 @@ class CameraActivity : AppCompatActivity() {
                 btn_settings.visibility = ImageButton.VISIBLE
                 btn_gallery.visibility = ImageButton.VISIBLE
 
-                tv_process.visibility = TextView.INVISIBLE
-                tv_rotate.visibility = TextView.INVISIBLE
-                tv_gallery.visibility = TextView.VISIBLE
-                tv_settings.visibility = TextView.VISIBLE
-
                 tv_image.setAspectRatio(
                     cameraBackResolutionsList[currentCameraBackResolution].height,
                     cameraBackResolutionsList[currentCameraBackResolution].width
@@ -235,11 +230,6 @@ class CameraActivity : AppCompatActivity() {
                 btn_settings.visibility = ImageButton.INVISIBLE
                 btn_gallery.visibility = ImageButton.INVISIBLE
 
-                tv_process.visibility = TextView.VISIBLE
-                tv_rotate.visibility = TextView.VISIBLE
-                tv_gallery.visibility = TextView.INVISIBLE
-                tv_settings.visibility = TextView.INVISIBLE
-
                 //waiting for get bitmap from camera
             }
             Status.PROCESING_PHOTO ->{
@@ -250,11 +240,6 @@ class CameraActivity : AppCompatActivity() {
                 btn_rotate.visibility = ImageButton.VISIBLE
                 btn_settings.visibility = ImageButton.INVISIBLE
                 btn_gallery.visibility = ImageButton.INVISIBLE
-
-                tv_process.visibility = TextView.VISIBLE
-                tv_rotate.visibility = TextView.VISIBLE
-                tv_gallery.visibility = TextView.INVISIBLE
-                tv_settings.visibility = TextView.INVISIBLE
             }
         }
     }
